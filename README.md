@@ -1,2 +1,1 @@
-# hubitat
-My Hubitat apps and drivers
+# My Hubitat apps and drivers
