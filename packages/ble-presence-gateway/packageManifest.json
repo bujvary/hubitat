@@ -1,0 +1,23 @@
+{
+  "packageName": "BLE Presence Gateway",
+  "author": "Brian Ujvary",
+  "version": "1.0",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2020-05-13",
+  "drivers": [
+    {
+      "id": "e282ac6e-b773-4a46-9eca-9e1adfdc3654",
+      "name": "BLE Presence Gateway",
+      "namespace": "bujvary",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/ble-presence-gateway.groovy",
+      "required": true
+    },
+    {
+      "id": "39d1b25e-378b-4725-baf4-e0af7a39906c",
+      "name": "Virtual Presence with Timeout",
+      "namespace": "bujvary",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/virtual-presence-with-timeout.groovy",
+      "required": true
+    }
+  ]
+}
