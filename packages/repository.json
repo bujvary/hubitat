@@ -1,0 +1,18 @@
+{
+  "author": "Brian Ujvary",
+  "gitHubUrl": "https://github.com/bujvary/hubitat",
+  "packages": [
+    {
+      "name": "BLE Presence Gateway",
+      "category": "Utility",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/ble-presence-gateway/packageManifest.json",
+      "description": "BLE Presence Gateway via MQTT"
+    },
+    {
+      "name": "Hunter Douglas Powerview",
+      "category": "Control",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/hunter-douglas-powerview/packageManifest.json",
+      "description": "Control Hunter Douglas Powerview Shades"
+    }
+  ]
+}
