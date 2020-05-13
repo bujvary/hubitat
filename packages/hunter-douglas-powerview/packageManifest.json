@@ -10,7 +10,7 @@
       "name": "Hunter Douglas PowerView",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview.groovy",
-      "required": true
+      "required": true,
       "oauth": false
     }
   ],
