@@ -24,7 +24,7 @@
  *
  *
  *  Changes:
- *
+ *  1.0.5 - Cleaned up debug logging
  *  1.0.4 - Updated the importURL
  *  1.0.3 - Added logic to store rssi value and include in event description text
  *  1.0.2 - Added parse() and handlePresenceEvent(), other code cleanup
@@ -100,10 +100,10 @@ private handlePresenceEvent(present) {
     def wasPresent = device.currentState("presence")?.value == "present"
     
     if (!wasPresent && present) {
-        log.debug "Sensor is present"
+        log.info "${device.displayName} sensor is present (rssi = ${state.rssi})"
         startTimer()
     } else if (!present) {
-        log.debug "Sensor is not present"
+         log.info "${device.displayName} sensor is not present (rssi = ${state.rssi})"
         stopTimer()
     } else if (wasPresent && present) {
         return   
@@ -125,17 +125,17 @@ private handlePresenceEvent(present) {
           translatable: true
         ]
         
-    log.debug "Creating presence event: ${device.displayName} ${eventMap.name} is ${eventMap.value}"
+    if (logEnable) log.debug "Creating presence event: ${device.displayName} ${eventMap.name} is ${eventMap.value}"
     sendEvent(eventMap)
 }
 
 private startTimer() {
-    log.debug "In ${device.displayName}.startTimer() Scheduling periodic timer"
+    if (logEnable) log.debug "In ${device.displayName}.startTimer() Scheduling periodic timer"
     runEvery1Minute("checkPresenceCallback")
 }
 
 private stopTimer() {
-    log.debug "In ${device.displayName}.stopTimer() Stopping periodic timer"
+    if (logEnable) log.debug "In ${device.displayName}.stopTimer() Stopping periodic timer"
     unschedule()
 }
 
@@ -146,7 +146,7 @@ private checkPresenceCallback() {
     def timeSinceLastCheckin = (now() - state.lastCheckin ?: 0) / 1000
     def theCheckInterval = (checkInterval ? checkInterval as int : 2) * 60
     
-    log.debug "${device.displayName} Sensor checked in ${timeSinceLastCheckin} seconds ago (theCheckInterval = ${theCheckInterval})"
+    if (logEnable) log.debug "${device.displayName} Sensor checked in ${timeSinceLastCheckin} seconds ago (theCheckInterval = ${theCheckInterval})"
     
     if (timeSinceLastCheckin >= theCheckInterval) {
         handlePresenceEvent(false)
