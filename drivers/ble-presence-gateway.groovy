@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.0.5 - Modified to only send one lastUpdated event per JSON payload from BLE gateway
  *  1.0.4 - Renamed the driver and updated the importURL
  *  1.0.3 - Added logic to pass the RSSI to the child parse routine
  *  1.0.2 - Added retry logic if client gets disconnected
@@ -111,10 +112,11 @@ def parse(String description) {
         }
         
         if (logEnable) log.debug "parse: updating presence sensor data for " + macDNI
-        
         macChild.parse(beacon.rssi)
-        sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
     }
+    
+    if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
+    sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
 }
 
 def publishMsg(String s) {
