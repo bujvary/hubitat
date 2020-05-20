@@ -1,9 +1,9 @@
 {
   "packageName": "BLE Presence Gateway",
   "author": "Brian Ujvary",
-  "version": "1.0",
+  "version": "1.0.5",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-05-13",
+  "dateReleased": "2020-05-19",
   "drivers": [
     {
       "id": "e282ac6e-b773-4a46-9eca-9e1adfdc3654",
