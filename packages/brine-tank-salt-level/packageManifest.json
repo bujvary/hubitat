@@ -1,0 +1,16 @@
+{
+  "packageName": "Brine Tank Salt Level",
+  "author": "Brian Ujvary",
+  "version": "1.0.0",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2020-6-19",
+  "drivers": [
+    {
+      "id": "fa4f75a8-211e-4105-91f0-a2683ad6565b",
+      "name": "Brine Tank Salt Level",
+      "namespace": "bujvary",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/brine-tank-salt-level.groovy",
+      "required": true
+    },
+  ]
+}
