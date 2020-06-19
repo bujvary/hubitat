@@ -11,6 +11,6 @@
       "namespace": "bujvary",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/brine-tank-salt-level.groovy",
       "required": true
-    },
+    }
   ]
 }
