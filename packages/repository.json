@@ -9,6 +9,12 @@
       "description": "BLE Presence Gateway via MQTT"
     },
     {
+      "name": "Brine Tank Salt Level",
+      "category": "Utility",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/brine-tank-salt-level/packageManifest.json",
+      "description": "Monitor the salt level of a water softener brine tank via an Arduino with a distance sensor and MQTT"
+    },
+    {
       "name": "Hunter Douglas Powerview",
       "category": "Control",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/hunter-douglas-powerview/packageManifest.json",
