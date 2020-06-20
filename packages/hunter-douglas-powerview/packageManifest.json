@@ -1,9 +1,9 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "1.0",
+  "version": "1.1",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-05-13",
+  "dateReleased": "2020-06-20",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",

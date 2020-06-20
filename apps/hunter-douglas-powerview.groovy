@@ -15,9 +15,19 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    06/20/2020 v1.1 - Added retrieval of firmware information and display on main page
+ *                    - Added logic to determine when all device discovery is complete
+ *                    - Added logic to check that devices exist before creating device
+ *                      descriptions on the devices page
+ *                    - Added logic to check the HTTP status in the device discovery callbacks
  *    05/10/2020 v1.0 - Initial release
  *
  */
+
+import groovy.transform.Field
+
+@Field static String htmlTab = "&nbsp;&nbsp;&nbsp;&nbsp;"
+
 definition(
     name: "Hunter Douglas PowerView",
     namespace: "hdpowerview",
@@ -52,18 +62,37 @@ def mainPage() {
         uninstall: atomicState?.installed
     ]
 
+    if (atomicState?.gettingFirmwareVer == null)
+        atomicState?.gettingFirmwareVer = true
+    
+    if (logEnable) log.debug "atomicState?.gettingFirmwareVer = ${atomicState?.gettingFirmwareVer}"
+    if (atomicState?.gettingFirmwareVer && settings?.powerviewIPAddress) {
+        pageProperties["refreshInterval"] = 1
+        getFirmwareVer()
+    }
+
     return dynamicPage(pageProperties) {
         section("PowerView Hub") {
             input("powerviewIPAddress", "text", title: "IP Address", defaultValue: "", description: "(ie. 192.168.1.10)", required: true, submitOnChange: true)
         }
+       
         if (settings?.powerviewIPAddress) {
-            section("Devices & Scenes") {
-                def description = (atomicState?.deviceData) ? "Click to modify" : "Click to configure";
-                href "devicesPage", title: "Manage Devices", description: description, state: "complete"
-                atomicState?.loadingDevices = false
+            if (atomicState?.gettingFirmwareVer) {
+                section("Getting firmware version...") {
+                    paragraph "Please wait..."
+                }
+            } else {
+                section("Firmware Version") {
+                    paragraph "${htmlTab}Name: ${state.fwName}</br>${htmlTab}Revision: ${state.fwRevision}</br>${htmlTab}SubRevision: ${state.fwSubRevision}</br>${htmlTab}Build: ${state.fwBuild}"
+                }
+                section("Devices & Scenes") {
+                    def description = (atomicState?.deviceData) ? "Click to modify" : "Click to configure";
+                    href "devicesPage", title: "Manage Devices", description: description, state: "complete"
+                    atomicState?.loadingDevices = false
 
-                input("disablePoll", "bool", title: "Disable periodic polling of devices", required: false, defaultValue: false)
-                input("logEnable", "bool", title: "Enable debug logging", required: false, defaultValue: true)
+                    input("disablePoll", "bool", title: "Disable periodic polling of devices", required: false, defaultValue: false)
+                    input("logEnable", "bool", title: "Enable debug logging", required: false, defaultValue: true)
+                }
             }
         }
     }
@@ -78,11 +107,17 @@ def devicesPage() {
     if (logEnable) log.debug "atomicState?.loadingDevices = ${atomicState?.loadingDevices}"
     if (!atomicState?.loadingDevices) {
         atomicState?.loadingDevices = true
+        atomicState?.gettingRooms = true
+        atomicState?.gettingShades = true
+        atomicState?.gettingScenes = true
+        atomicState?.gettingRepeaters = true
+        
         getDevices()
     }
 
     if (logEnable) log.debug "atomicState?.deviceData = ${atomicState?.deviceData}"
-    if (!atomicState?.deviceData?.shades || !atomicState?.deviceData?.scenes || !atomicState?.deviceData?.rooms || !atomicState?.deviceData?.repeaters) {
+    //if (!atomicState?.deviceData?.shades || !atomicState?.deviceData?.scenes || !atomicState?.deviceData?.rooms || !atomicState?.deviceData?.repeaters) {
+    if (atomicState?.gettingShades || atomicState?.gettingScenes || atomicState?.gettingRooms || atomicState?.gettingRepeaters) {
         pageProperties["refreshInterval"] = 1
         return dynamicPage(pageProperties) {
             section("Discovering Devices...") {
@@ -98,7 +133,9 @@ def devicesPage() {
         section("Shades") {
             input("syncShades", "bool", title: "Automatically sync all shades", required: false, defaultValue: true, submitOnChange: true)
             if (settings?.syncShades == true || settings?.syncShades == null) {
-                def shadesDesc = atomicState?.deviceData?.shades.values().join(", ")
+                def shadesDesc = "None"
+                if (atomicState?.deviceData?.shades)
+                    shadesDesc = atomicState?.deviceData?.shades.values().join(", ")
                 paragraph "The following shades will be added as devices: ${shadesDesc}"
                 atomicState?.shades = atomicState?.deviceData?.shades
             } else {
@@ -111,7 +148,9 @@ def devicesPage() {
         section("Scenes") {
             input("syncScenes", "bool", title: "Automatically sync all scenes", required: false, defaultValue: true, submitOnChange: true)
             if (settings?.syncScenes == true || settings?.syncScenes == null) {
-                def scenesDesc = atomicState?.deviceData?.scenes.values().join(", ")
+                def scenesDesc = "None"
+                if (atomicState?.deviceData?.scenes)
+                    scenesDesc = atomicState?.deviceData?.scenes.values().join(", ")
                 paragraph "The following scenes will be added as devices: ${scenesDesc}"
                 atomicState?.scenes = atomicState?.deviceData?.scenes
             } else {
@@ -124,7 +163,9 @@ def devicesPage() {
         section("Repeaters") {
             input("syncRepeaters", "bool", title: "Automatically sync all repeaters", required: false, defaultValue: true, submitOnChange: true)
             if (settings?.syncRepeaters == true || settings?.syncRepeaters == null) {
-                def repeatersDesc = atomicState?.deviceData?.repeaters.values().join(", ")
+                def repeatersDesc = "None"
+                if (atomicState?.deviceData?.repeaters)
+                    repeatersDesc = atomicState?.deviceData?.repeaters.values().join(", ")
                 paragraph "The following repeaters will be added as devices: ${repeatersDesc}"
                 atomicState?.repeaters = atomicState?.deviceData?.repeaters
             } else {
@@ -148,34 +189,41 @@ def roomsPage() {
             paragraph("Configure scenes to open or close the blinds in each room. A virtual device will be created for each room so configured.")
         }
         def rooms = [:]
-        atomicState?.deviceData.rooms.collect { id, name ->
-            section(name) {
-                def openSetting = "room" + id + "Open"
-                def closeSetting = "room" + id + "Close"
-                def description
-                if (settings[openSetting] && settings[closeSetting]) {
-                    description = "Blinds in this room will open and close via the configured scenes."
-                } else if (settings[openSetting]) {
-                    description = "Blinds in this room will open via the configured scene, but not close."
-                } else if (settings[closeSetting]) {
-                    description = "Blinds in this room will close via the configured scene, but not open."
-                } else {
-                    description = "No virtual device will be created for this room because neither open nor close scenes are configured."
+        if (atomicState?.deviceData.rooms) {
+            atomicState?.deviceData.rooms.collect { id, name ->
+                section(name) {
+                    def openSetting = "room" + id + "Open"
+                    def closeSetting = "room" + id + "Close"
+                    def description
+                    if (settings[openSetting] && settings[closeSetting]) {
+                        description = "Blinds in this room will open and close via the configured scenes."
+                    } else if (settings[openSetting]) {
+                        description = "Blinds in this room will open via the configured scene, but not close."
+                    } else if (settings[closeSetting]) {
+                        description = "Blinds in this room will close via the configured scene, but not open."
+                    } else {
+                        description = "No virtual device will be created for this room because neither open nor close scenes are configured."
+                    }
+                    paragraph(description)
+
+                    // TODO limit to scenes for this room or multi-room scenes
+                    def scenesList = getDiscoveredSceneList()
+                    input(name: openSetting, title: "Open", type: "enum", required: false, multiple: false, submitOnChange: true, options: scenesList)
+                    input(name: closeSetting, title: "Close", type: "enum", required: false, multiple: false, submitOnChange: true, options: scenesList)
+
+                    rooms[id] = [
+                        name: name,
+                        openScene: settings[openSetting],
+                        closeScene: settings[closeSetting],
+                    ]
                 }
-                paragraph(description)
-
-                // TODO limit to scenes for this room or multi-room scenes
-                def scenesList = getDiscoveredSceneList()
-                input(name: openSetting, title: "Open", type: "enum", required: false, multiple: false, submitOnChange: true, options: scenesList)
-                input(name: closeSetting, title: "Close", type: "enum", required: false, multiple: false, submitOnChange: true, options: scenesList)
-
-                rooms[id] = [
-                    name: name,
-                    openScene: settings[openSetting],
-                    closeScene: settings[closeSetting],
-                ]
+            }
+        } else {
+            section() {
+                paragraph("No rooms discovered")
             }
         }
+        
         atomicState?.rooms = rooms
         if (logEnable) log.debug "atomicState?.rooms = ${atomicState?.rooms}"
     }
@@ -499,6 +547,24 @@ def getDiscoveredRepeaterList() {
  * PowerView API
  */
 
+// FIRMWARE
+def getFirmwareVer() {
+    callPowerView("fwversion", firmwareVerCallback)
+    atomicState?.gettingFirmwareVer = true
+}
+
+void firmwareVerCallback(hubitat.device.HubResponse hubResponse) {
+    if (logEnable) log.debug "Entered firmwareVerCallback()..."
+    if (logEnable) log.debug "json: ${hubResponse.json}"
+
+    state.fwName = hubResponse.json.firmware.mainProcessor.name
+    state.fwRevision = hubResponse.json.firmware.mainProcessor.revision
+    state.fwSubRevision = hubResponse.json.firmware.mainProcessor.subRevision
+    state.fwBuild = hubResponse.json.firmware.mainProcessor.build
+    
+    atomicState?.gettingFirmwareVer = false
+}
+
 // ROOMS
 
 def getRooms() {
@@ -534,13 +600,20 @@ void roomsCallback(hubitat.device.HubResponse hubResponse) {
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def rooms = [:]
-    hubResponse.json.roomData.each { room ->
-        def name = new String(room.name.decodeBase64())
-        rooms[room.id] = name
-        if (logEnable) log.debug "room: ID = ${room.id}, name = ${name}"
+    
+    if (hubResponse.status == 200) {
+        hubResponse.json.roomData.each { room ->
+            def name = new String(room.name.decodeBase64())
+            rooms[room.id] = name
+            if (logEnable) log.debug "room: ID = ${room.id}, name = ${name}"
+        }
+    } else {
+        log.error "roomsCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
     }
-
+    
     updateDeviceDataState([rooms: rooms])
+    
+    atomicState?.gettingRooms = false
 }
 
 // SCENES
@@ -563,13 +636,20 @@ void scenesCallback(hubitat.device.HubResponse hubResponse) {
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def scenes = [:]
-    hubResponse.json.sceneData.each {scene ->
-        def name = new String(scene.name.decodeBase64())
-        scenes[scene.id] = name
-        if (logEnable) log.debug "scene: ID = ${scene.id}, name = ${name}"
+    
+    if (hubResponse.status == 200) {
+        hubResponse.json.sceneData.each {scene ->
+            def name = new String(scene.name.decodeBase64())
+            scenes[scene.id] = name
+            if (logEnable) log.debug "scene: ID = ${scene.id}, name = ${name}"
+        }
+    } else {
+        log.error "scenesCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
     }
-
+    
     updateDeviceDataState([scenes: scenes])
+    
+    atomicState?.gettingScenes = false
 }
 
 def triggerSceneCallback(hubitat.device.HubResponse hubResponse) {
@@ -679,13 +759,20 @@ void shadesCallback(hubitat.device.HubResponse hubResponse) {
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def shades = [:]
-    hubResponse.json.shadeData.each { shade ->
-        def name = shade.name ? new String(shade.name.decodeBase64()) : "Shade ID ${shade.id}"
-        shades[shade.id] = name
-        if (logEnable) log.debug "shade: ID = ${shade.id}, name = ${name}"
+    
+    if (hubResponse.status == 200) {
+        hubResponse.json.shadeData.each { shade ->
+            def name = shade.name ? new String(shade.name.decodeBase64()) : "Shade ID ${shade.id}"
+            shades[shade.id] = name
+            if (logEnable) log.debug "shade: ID = ${shade.id}, name = ${name}"
+        }
+    } else {
+        log.error "shadesCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
     }
-
+    
     updateDeviceDataState([shades: shades])
+    
+    atomicState?.gettingShades = false
 }
 
 // REPEATERS
@@ -699,13 +786,20 @@ void repeatersCallback(hubitat.device.HubResponse hubResponse) {
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def repeaters = [:]
-    hubResponse.json.repeaterData.each { repeater ->
-        def name = repeater.name ? new String(repeater.name.decodeBase64()) : "Repeater ID ${repeater.id}"
-        repeaters[repeater.id] = name
-        if (logEnable) log.debug "repeater: ID = ${repeater.id}, name = ${name}"
+    
+    if (hubResponse.status == 200) {
+        hubResponse.json.repeaterData.each { repeater ->
+            def name = repeater.name ? new String(repeater.name.decodeBase64()) : "Repeater ID ${repeater.id}"
+            repeaters[repeater.id] = name
+            if (logEnable) log.debug "repeater: ID = ${repeater.id}, name = ${name}"
+        }
+    } else {
+        log.error "repeatersCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
     }
-
+    
     updateDeviceDataState([repeaters: repeaters])
+    
+    atomicState?.gettingRepeaters = false
 }
 
 def pollRepeater(repeaterDevice) {
