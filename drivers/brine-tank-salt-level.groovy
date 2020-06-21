@@ -1,4 +1,4 @@
-/**
+​/**
  *  ****************  Brine Tank Salt Level Driver  ****************
  *
  *  Design Usage:
@@ -25,7 +25,8 @@
  *
  *
  *  Changes:
- *  1.0.0 - Initial release
+ *  1.1 - Added subscribe and monitor for LWT topic
+ *  1.0 - Initial release
  */
 
 metadata {
@@ -46,13 +47,14 @@ metadata {
     }
 
     preferences {
-        input name: "emptyLevel", type: "text", title: "Softner Tank Empy Level:", description: "(in millimeters)", required: true, displayDuringSetup: true
-        input name: "fullLevel", type: "text", title: "Softner Tank Full Level:", description: "(in millimeters)", required: true, displayDuringSetup: true
+        input name: "emptyLevel", type: "text", title: "Softener Tank Empy Level:", description: "(in millimeters)", required: true, displayDuringSetup: true
+        input name: "fullLevel", type: "text", title: "Softener Tank Full Level:", description: "(in millimeters)", required: true, displayDuringSetup: true
         input name: "MQTTBroker", type: "text", title: "MQTT Broker Address:", required: true, displayDuringSetup: true
         input name: "username", type: "text", title: "MQTT Username:", description: "(blank if none)", required: false, displayDuringSetup: true
         input name: "password", type: "password", title: "MQTT Password:", description: "(blank if none)", required: false, displayDuringSetup: true
         input name: "clientid", type: "text", title: "MQTT Client ID:", description: "(blank if none)", required: false, displayDuringSetup: true
         input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "Example Topic (topic/device/value)", required: false, displayDuringSetup: true
+        input name: "topicSubLWT", type: "text", title: "Topic to Subscribe LWT:", description: "Example Topic (topic/device/value)", required: false, displayDuringSetup: true
         input name: "topicPub", type: "text", title: "Topic to Publish:", description: "Example Topic (topic/device/value)", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
@@ -100,9 +102,13 @@ def parse(String description) {
     if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
     sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
     
-    state.level = payload
-    
-    tileNow()
+    if (payload == "disconnected") {
+        state.clientStatus = "disconnected"
+    } else {
+        state.level = payload
+        state.clientStatus = "connected"
+        tileNow()
+    }
 }
 
 def publishMsg(String s) {
@@ -135,6 +141,9 @@ def connect() {
             if (logEnable) log.debug "Subscribed to: ${settings?.topicSub}"
             interfaces.mqtt.subscribe(settings?.topicSub)
             
+            if (logEnable) log.debug "Subscribed to: ${settings?.topicSubLWT}"
+            interfaces.mqtt.subscribe(settings?.topicSubLWT)
+                  
             sendEvent(name: "connection", value: "connected")
         } catch(e) {
             if (logEnable) log.debug "Connect error: ${e.message}"
