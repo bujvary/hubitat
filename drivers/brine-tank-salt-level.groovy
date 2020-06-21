@@ -1,4 +1,4 @@
-​/**
+/**
  *  ****************  Brine Tank Salt Level Driver  ****************
  *
  *  Design Usage:
@@ -25,8 +25,9 @@
  *
  *
  *  Changes:
- *  1.1 - Added subscribe and monitor for LWT topic
- *  1.0 - Initial release
+ *  1.2.0 - Changed clientStatus to an attribute so it can be used in RM
+ *  1.1.0 - Added subscribe and monitor for LWT topic
+ *  1.0.0 - Initial release
  */
 
 metadata {
@@ -38,6 +39,7 @@ metadata {
         
         // State of the connection to the MQTT broker ("connected" or "disconnected").
         attribute "connection", "string"
+        attribute "clientStatus", "string"
         attribute "lastUpdated", "string"
         attribute "percentFull", "number"
         attribute "saltTile", "string"
@@ -103,10 +105,10 @@ def parse(String description) {
     sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
     
     if (payload == "disconnected") {
-        state.clientStatus = "disconnected"
+        sendEvent(name: "clientStatus", value: "disconnected")
     } else {
+        sendEvent(name: "clientStatus", value: "connected")
         state.level = payload
-        state.clientStatus = "connected"
         tileNow()
     }
 }
