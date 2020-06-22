@@ -25,6 +25,7 @@
  *
  *
  *  Changes:
+ *  1.2.1 - Added check for LWT topic before subscribing
  *  1.2.0 - Changed clientStatus to an attribute so it can be used in RM
  *  1.1.0 - Added subscribe and monitor for LWT topic
  *  1.0.0 - Initial release
@@ -143,8 +144,10 @@ def connect() {
             if (logEnable) log.debug "Subscribed to: ${settings?.topicSub}"
             interfaces.mqtt.subscribe(settings?.topicSub)
             
-            if (logEnable) log.debug "Subscribed to: ${settings?.topicSubLWT}"
-            interfaces.mqtt.subscribe(settings?.topicSubLWT)
+            if (settings?.topicSubLWT) {
+                if (logEnable) log.debug "Subscribed to: ${settings?.topicSubLWT}"
+                interfaces.mqtt.subscribe(settings?.topicSubLWT)
+            }
                   
             sendEvent(name: "connection", value: "connected")
         } catch(e) {
