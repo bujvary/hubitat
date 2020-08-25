@@ -15,12 +15,15 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    08/25/2020 v1.1 - Added scene capability so rooms could be controlled from dashboard
  *    05/10/2020 v1.0 - Initial release
  *
  */
 metadata {
     definition(name: "Hunter Douglas PowerView Room", namespace: "hdpowerview", author: "Chris Lang", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy") {
         capability "Actuator"
+        capability "Momentary"
+        capability "Switch"
         capability "Window Shade"
     }
 
@@ -38,6 +41,22 @@ def initialize() {
 }
 
 // handle commands
+def push() {
+    sendEvent(name: "switch", value: "on", isStateChange: true, displayed: false)
+    sendEvent(name: "switch", value: "off", isStateChange: true, displayed: false)
+    sendEvent(name: "momentary", value: "pushed", isStateChange: true)
+}
+
+def on() {
+    push()
+    open()
+}
+
+def off() {
+    push()
+    close()
+}
+
 def open() {
     if (logEnable) log.debug "Executing 'open'"
     parent.openRoom(device)
