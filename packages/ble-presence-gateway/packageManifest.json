@@ -4,6 +4,7 @@
   "version": "1.0.6",
   "minimumHEVersion": "0.0",
   "dateReleased": "2020-09-03",
+  "releaseNotes": "BLE Presence Gateway Driver v1.0.6 - Added lastUpdated attribute",
   "drivers": [
     {
       "id": "e282ac6e-b773-4a46-9eca-9e1adfdc3654",
