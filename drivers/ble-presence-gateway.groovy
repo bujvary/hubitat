@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.0.6 - Added lastUpdated attribute
  *  1.0.5 - Modified to only send one lastUpdated event per JSON payload from BLE gateway
  *  1.0.4 - Renamed the driver and updated the importURL
  *  1.0.3 - Added logic to pass the RSSI to the child parse routine
@@ -43,8 +44,9 @@ metadata {
         capability "Initialize"
         
         // State of the connection to the MQTT broker ("connected" or "disconnected").
-        attribute "connection", "STRING"
-
+        attribute "connection", "string"
+        attribute "lastUpdated", "string"
+        
         command "publishMsg", ["String"]
     }
 
