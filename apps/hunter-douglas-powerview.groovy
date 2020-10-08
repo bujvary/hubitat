@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/08/2020 v1.2 - Added logic to update device labels if the device names changed in
+ *                      the PowerView hub
  *    06/20/2020 v1.1 - Added retrieval of firmware information and display on main page
  *                    - Added logic to determine when all device discovery is complete
  *                    - Added logic to check that devices exist before creating device
@@ -128,6 +130,7 @@ def devicesPage() {
 
     return dynamicPage(pageProperties) {
         section("Rooms") {
+            paragraph "NOTE: If you changed the name of a room in the Powerview app, you will need to click on \"Manage Rooms\" for the associated device label to be changed."
             href "roomsPage", title: "Manage Rooms", description: "Click to configure open/close scenes for each room", state: "complete"
         }
         section("Shades") {
@@ -272,12 +275,19 @@ def addDevices() {
     if (atomicState?.rooms) {
         atomicState?.rooms?.collect { id, room ->
             if (logEnable) log.debug "checking room ${id}"
-            if (room.openScene || room.closeScene) {
-                def dni = roomIdToDni(id)
-                def child = getChildDevice(dni)
-                if (!child) {
+            def dni = roomIdToDni(id)
+            def child = getChildDevice(dni)
+            if (!child) {
+                if (room.openScene || room.closeScene) {
                     child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room", dni, null, [label: getRoomLabel(room.name)])
                     if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
+                }
+            } else {
+                def childLabel = child.getLabel()
+                def roomName = getRoomLabel(room.name)
+                if (childLabel != roomName) {
+                    child.setLabel(roomName)
+                   if (logEnable) log.debug "Changed room device label from '${childLabel}' to '${roomName}'"
                 }
             }
         }
@@ -289,6 +299,12 @@ def addDevices() {
             if (!child) {
                 child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
+            } else {
+                def childLabel = child.getLabel()
+                if (childLabel != name) {
+                    child.setLabel(name)
+                    if (logEnable) log.debug "Changed shade device label from '${childLabel}' to '${name}'"
+                }
             }
         }
     }
@@ -300,6 +316,13 @@ def addDevices() {
                 child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             }
+             else {
+                def childLabel = child.getLabel()
+                if (childLabel != name) {
+                    child.setLabel(name)
+                    if (logEnable) log.debug "Changed scenes device label from '${childLabel}' to '${name}'"
+                }
+            }
         }
     }
     if (atomicState?.repeaters) {
@@ -309,7 +332,14 @@ def addDevices() {
             if (!child) {
                 child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Repeater", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
+            } else {
+                def childLabel = child.getLabel()
+                if (childLabel != name) {
+                    child.setLabel(name)
+                    if (logEnable) log.debug "Changed repeater device label from '${childLabel}' to '${name}'"
+                }
             }
+            
         }
     }
 }
