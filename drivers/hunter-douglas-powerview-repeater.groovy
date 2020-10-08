@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/08/2020 v1.2 - Modified to check for null value for brightness
+ *    07/01/2020 v1.1 - Added firmware version to the Data section of Device Details
  *    05/10/2020 v1.0 - Initial release
  *
  */
@@ -60,22 +62,23 @@ def updated() {
     prefsMap = [blinkEnabled: blinkEnabled, color: rgbMap]
 
     parent.setRepeaterPrefs(device, prefsMap)
-
-    pageProperties["refreshInterval"] = 1
 }
 
 public handleEvent(repeaterJson) {
     if (logEnable) log.debug "handleEvent: repeaterJson = ${repeaterJson}"
 
-    if (device.currentValue("level") != repeaterJson.color.brightness)
-        sendEvent(name: "level", value: repeaterJson.color.brightness)
-
+    def level = (repeaterJson.color.brightness != null) ? repeaterJson.color.brightness : 0
+    if (level != device.currentValue("level"))
+        sendEvent(name: "level", value: level)
+    
     if (blinkEnabled != repeaterJson.blinkEnabled)
         device.updateSetting("blinkEnabled", [value: repeaterJson.blinkEnabled, type: "bool"])
 
     def colorEnum = getLedColorEnum(repeaterJson.color)
     if (ledColor != colorEnum)
         device.updateSetting("ledColor", [value: colorEnum, type: "enum"])
+    
+    device.updateDataValue("firmwareVersion", "${repeaterJson.firmware.revision}.${repeaterJson.firmware.subRevision}.${repeaterJson.firmware.build}")
 }
 
 def refresh() {
