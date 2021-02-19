@@ -1,9 +1,9 @@
 {
   "packageName": "BLE Presence Gateway",
   "author": "Brian Ujvary",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-09-03",
+  "dateReleased": "2021-02-18",
   "releaseNotes": "BLE Presence Gateway Driver v1.0.6 - Added lastUpdated attribute",
   "drivers": [
     {
