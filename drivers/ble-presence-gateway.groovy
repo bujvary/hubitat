@@ -24,6 +24,8 @@
  *
  *
  *  Changes:
+ *  1.0.7 - Refactored startup delay logic
+            added reconnect()
  *  1.0.6 - Added a startup delay for the MQTT connection since the driver starts running before the systemStart event
  *  1.0.5 - Modified to only send one lastUpdated event per JSON payload from BLE gateway
  *  1.0.4 - Renamed the driver and updated the importURL
@@ -44,9 +46,11 @@ metadata {
         capability "Initialize"
         
         // State of the connection to the MQTT broker ("connected" or "disconnected").
-        attribute "connection", "STRING"
-
+        attribute "connection", "String"
+        attribute "lastUpdate", "String"
+        
         command "publishMsg", ["String"]
+        command "reconnect"
     }
 
     preferences {
@@ -54,11 +58,11 @@ metadata {
         input name: "username", type: "text", title: "MQTT Username:", description: "(blank if none)", required: false, displayDuringSetup: true
         input name: "password", type: "password", title: "MQTT Password:", description: "(blank if none)", required: false, displayDuringSetup: true
         input name: "clientid", type: "text", title: "MQTT Client ID:", description: "(blank if none)", required: false, displayDuringSetup: true
+        input name: "connectDelay", type: "integer", title: "MQTT Connect Delay:", description: "On hub startup (in seconds)", required: false, defaultValue: 120, displayDuringSetup: true
         input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "Example Topic (topic/device/#)", required: false, displayDuringSetup: true
         input name: "topicPub", type: "text", title: "Topic to Publish:", description: "Topic Value (topic/device/value)", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
-        input name: "connectDelay", type: "integer", title: "Startup MQTT Connect Delay:", description: "(in seconds)", required: false, defaultValue: 120, displayDuringSetup: true
         input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
     }
 }
@@ -66,16 +70,13 @@ metadata {
 def installed() {
     log.info "${device.displayName}.installed()"
     
-    if (settings.MQTTBroker?.trim()) {
-        state.isStartup = false
-        initialize()
-    }
+    if (settings.MQTTBroker?.trim())
+         reconnect()
 }
 
 def updated() {
     if (logEnable) log.info "${device.displayName}.updated()"
-    state.isStartup = false
-    initialize()
+    reconnect()
 }
 
 def uninstalled() {
@@ -88,15 +89,14 @@ def initialize() {
     if (logEnable) runIn(900,logsOff)
 
     disconnect()
+    
+    log.info "Hub startup, connecting to mqtt in " + connectDelay + " seconds"
+    runIn(connectDelay.toInteger(), reconnect)
+}
 
-    if (state.isStartup == null) {
-        log.info "Connecting to mqtt in " + connectDelay + " seconds"
-        runIn(connectDelay.toInteger(), connect)
-    } else {
-        log.info "Connecting to mqtt immediately"
-        connect()
-        state.remove("isStartup")
-    }
+def reconnect() {
+    disconnect()
+    connect()
 }
 
 // Parse incoming device messages to generate events
