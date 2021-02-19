@@ -4,7 +4,7 @@
   "version": "1.0.8",
   "minimumHEVersion": "0.0",
   "dateReleased": "2021-02-19",
-  "releaseNotes": "BLE Presence Gateway Driver v1.0.6 - Added lastUpdated attribute",
+  "releaseNotes": "BLE Presence Gateway Driver v1.0.8 - Refactored startup delay logic",
   "drivers": [
     {
       "id": "e282ac6e-b773-4a46-9eca-9e1adfdc3654",
