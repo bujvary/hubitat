@@ -24,7 +24,7 @@
  *
  *
  *  Changes:
- *  1.0.6 - Added lastUpdated attribute
+ *  1.0.6 - Added a startup delay for the MQTT connection since the driver starts running before the systemStart event
  *  1.0.5 - Modified to only send one lastUpdated event per JSON payload from BLE gateway
  *  1.0.4 - Renamed the driver and updated the importURL
  *  1.0.3 - Added logic to pass the RSSI to the child parse routine
@@ -44,9 +44,8 @@ metadata {
         capability "Initialize"
         
         // State of the connection to the MQTT broker ("connected" or "disconnected").
-        attribute "connection", "string"
-        attribute "lastUpdated", "string"
-        
+        attribute "connection", "STRING"
+
         command "publishMsg", ["String"]
     }
 
@@ -59,6 +58,7 @@ metadata {
         input name: "topicPub", type: "text", title: "Topic to Publish:", description: "Topic Value (topic/device/value)", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
+        input name: "connectDelay", type: "integer", title: "Startup MQTT Connect Delay:", description: "(in seconds)", required: false, defaultValue: 120, displayDuringSetup: true
         input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
     }
 }
@@ -67,12 +67,14 @@ def installed() {
     log.info "${device.displayName}.installed()"
     
     if (settings.MQTTBroker?.trim()) {
+        state.isStartup = false
         initialize()
     }
 }
 
 def updated() {
     if (logEnable) log.info "${device.displayName}.updated()"
+    state.isStartup = false
     initialize()
 }
 
@@ -84,9 +86,21 @@ def uninstalled() {
 
 def initialize() {
     if (logEnable) runIn(900,logsOff)
-    
+
     disconnect()
-    connect()
+    
+    log.info "Before: state.isStartup = " + state.isStartup
+
+    if (state.isStartup == null) {
+        log.info "Connecting to mqtt in " + connectDelay + " seconds"
+        runIn(connectDelay.toInteger(), connect)
+    } else {
+        log.info "Connecting to mqtt immediately"
+        connect()
+        state.remove("isStartup")
+    }
+    
+    log.info "After: state.isStartup = " + state.isStartup
 }
 
 // Parse incoming device messages to generate events
