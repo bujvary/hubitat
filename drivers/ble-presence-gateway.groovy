@@ -88,8 +88,6 @@ def initialize() {
     if (logEnable) runIn(900,logsOff)
 
     disconnect()
-    
-    log.info "Before: state.isStartup = " + state.isStartup
 
     if (state.isStartup == null) {
         log.info "Connecting to mqtt in " + connectDelay + " seconds"
@@ -99,8 +97,6 @@ def initialize() {
         connect()
         state.remove("isStartup")
     }
-    
-    log.info "After: state.isStartup = " + state.isStartup
 }
 
 // Parse incoming device messages to generate events
