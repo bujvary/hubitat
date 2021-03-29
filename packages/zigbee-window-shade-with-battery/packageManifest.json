@@ -1,0 +1,16 @@
+{
+  "packageName": "ZigBee Window Shade with Battery",
+  "author": "Brian Ujvary",
+  "version": "1.0.0",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2021-03-28",
+  "drivers": [
+    {
+      "id": "aff7098d-03cf-4205-bb6e-8795ad7b1e10",
+      "name": "ZigBee Window Shade with Battery",
+      "namespace": "bujvary",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/zigbee-window-shade-with-battery.groovy",
+      "required": true
+    }
+  ]
+}
