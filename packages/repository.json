@@ -19,6 +19,12 @@
       "category": "Control",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/hunter-douglas-powerview/packageManifest.json",
       "description": "Control Hunter Douglas Powerview Shades"
+    },
+    {
+      "name": "ZigBee Window Shade with Battery",
+      "category": "Control",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/zigbee-window-shade-with-battery/packageManifest.json",
+      "description": "Control ZigBee Window Shade with Batteries from IKEA, Yookee and Yooksmart"
     }
   ]
 }
