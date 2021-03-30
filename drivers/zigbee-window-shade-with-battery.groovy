@@ -14,7 +14,7 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
- *    03/30/2021 v1.1 - Added preference and logic to set closed level of window shade
+ *    03/30/2021 v1.2 - Added preference and logic to set closed level of window shade
  *    03/30/2021 v1.1 - Removed descTextOutput preference and changed all logging to log on debugOutput
  *                    - Added preference and logic to invert the SetLevel level percentage if set to
  *                      handle shades that report the opposite of the percentage open
