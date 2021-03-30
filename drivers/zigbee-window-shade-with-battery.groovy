@@ -14,6 +14,9 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    03/30/2021 v1.1 - Removed descTextOutput preference and changed all logging to log on debugOutput
+ *                    - Added preference and logic to invert the SetLevel level percentage if set to
+ *                      handle shades that report the opposite of the percentage open
  *    03/28/2021 v1.0 - Initial release
  */
 import groovy.json.JsonOutput
@@ -29,7 +32,7 @@ metadata {
 		capability "Health Check"
 		capability "Switch Level"
 
-		command "pause"
+	    command "pause"
         command "setPresetPosition"
 
 		// IKEA
@@ -43,9 +46,9 @@ metadata {
 	}
 
 	preferences {
-		input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
+        input "invertSetLevel", "bool", title: "Invert Level/Position Percentage?", description: '<div><i>Invert the SetLevel or SetPosition percentage</i></div><br>', defaultValue: false
+        input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
         input "debugOutput", "bool", title: "Enable debug logging?", description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
-		input "descTextOutput", "bool", title: "Enable descriptionText logging?", defaultValue: true
 	}
 }
 
@@ -144,28 +147,28 @@ def batteryPercentageEventHandler(batteryLevel) {
 }
 
 def close() {
-	if (descTextOutput) log.info "close()"
+    if (debugOutput) log.info "close()"
 	//setLevel(100)
     runIn(5, refresh)
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
 }
 
 def open() {
-	if (descTextOutput) log.info "open()"
+	if (debugOutput) log.info "open()"
 	//setLevel(0)
     runIn(5, refresh)
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
 }
 
 def setLevel(data, rate = null) {
-	if (descTextOutput) log.info "setLevel()"
+    if (debugOutput) log.info "setLevel() level = ${data}"
 	def cmd
 	if (supportsLiftPercentage()) {
-		if (shouldInvertLiftPercentage()) {
+		if (shouldInvertLiftPercentage() || invertSetLevel) {
 			// some devices keeps % level of being closed (instead of % level of being opened)
 			// inverting that logic is needed here
 			data = 100 - data
-		}
+		}      
 		cmd = zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_GOTO_LIFT_PERCENTAGE, zigbee.convertToHexString(data.intValue(), 2))
 	} else {
 		cmd = zigbee.command(zigbee.LEVEL_CONTROL_CLUSTER, COMMAND_MOVE_LEVEL_ONOFF, zigbee.convertToHexString(Math.round(data * 255 / 100), 2))
@@ -174,11 +177,12 @@ def setLevel(data, rate = null) {
 }
 
 def setPosition(value){
+    if (debugOutput) log.info "setPosition() level = ${value}"
 	setLevel(value)
 }
 
 def pause() {
-	if (descTextOutput) log.info "pause()"
+	if (debugOutput) log.info "pause()"
 	// If the window shade isn't moving when we receive a pause() command then just echo back the current state for the mobile client.
 	if (device.currentValue("windowShade") != "opening" && device.currentValue("windowShade") != "closing") {
 		sendEvent(name: "windowShade", value: device.currentValue("windowShade"), isStateChange: true, displayed: false)
@@ -198,7 +202,7 @@ def ping() {
 }
 
 def refresh() {
-	if (descTextOutput) log.info "refresh()"
+	if (debugOutput) log.info "refresh()"
 	def cmds
 	if (supportsLiftPercentage()) {
 		cmds = zigbee.readAttribute(CLUSTER_WINDOW_COVERING, ATTRIBUTE_POSITION_LIFT)
@@ -210,7 +214,7 @@ def refresh() {
 
 def configure() {
 	// Device-Watch allows 2 check-in misses from device + ping (plus 2 min lag time)
-	if (descTextOutput) log.info "configure()"
+	if (debugOutput) log.info "configure()"
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 	if (debugOutput) log.debug "Configuring Reporting and Bindings."
 
@@ -250,10 +254,10 @@ private def parseBindingTableMessage(description) {
 }
 
 private Integer getGroupAddrFromBindingTable(description) {
-	if (descTextOutput) log.info "Parsing binding table - '$description'"
+	if (debugOutput) log.info "Parsing binding table - '$description'"
 	def btr = zigbee.parseBindingTableResponse(description)
 	def groupEntry = btr?.table_entries?.find { it.dstAddrMode == 1 }
-	if (descTextOutput) log.info "Found ${groupEntry}"
+	if (debugOutput) log.info "Found ${groupEntry}"
 	!groupEntry?.dstAddr ?: Integer.parseInt(groupEntry.dstAddr, 16)
 }
 
@@ -266,7 +270,7 @@ private List readDeviceBindingTable() {
 }
 
 def supportsLiftPercentage() {
-	isIkeaKadrilj() || isIkeaFyrtur() || isYooksmartOrYookee()
+	return isIkeaKadrilj() || isIkeaFyrtur() || isYooksmartOrYookee()
 }
 
 def shouldInvertLiftPercentage() {
@@ -278,15 +282,15 @@ def reportsBatteryPercentage() {
 }
 
 def isIkeaKadrilj() {
-	device.getDataValue("model") == "KADRILJ roller blind"
+	return device.getDataValue("model") == "KADRILJ roller blind"
 }
 
 def isIkeaFyrtur() {
-	device.getDataValue("model") == "FYRTUR block-out roller blind"
+	return device.getDataValue("model") == "FYRTUR block-out roller blind"
 }
 
 def isYooksmartOrYookee() {
-	device.getDataValue("model") == "D10110"
+	return device.getDataValue("model") == "D10110"
 }
 
 def updated() {
