@@ -14,6 +14,7 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    03/30/2021 v1.1 - Added preference and logic to set closed level of window shade
  *    03/30/2021 v1.1 - Removed descTextOutput preference and changed all logging to log on debugOutput
  *                    - Added preference and logic to invert the SetLevel level percentage if set to
  *                      handle shades that report the opposite of the percentage open
@@ -48,6 +49,7 @@ metadata {
 	preferences {
         input "invertSetLevel", "bool", title: "Invert Level/Position Percentage?", description: '<div><i>Invert the SetLevel or SetPosition percentage</i></div><br>', defaultValue: false
         input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
+        input "closedPosition", "number", title: " Closed position", description: "<div><i>Set the position for fully closed window shade</i></div><br>", defaultValue: 0, range: "1..100", required: false, displayDuringSetup: false
         input "debugOutput", "bool", title: "Enable debug logging?", description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
 	}
 }
@@ -167,8 +169,11 @@ def setLevel(data, rate = null) {
 		if (shouldInvertLiftPercentage() || invertSetLevel) {
 			// some devices keeps % level of being closed (instead of % level of being opened)
 			// inverting that logic is needed here
+            if (data < closedPosition)
+                data = closedPosition
+            
 			data = 100 - data
-		}      
+		}
 		cmd = zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_GOTO_LIFT_PERCENTAGE, zigbee.convertToHexString(data.intValue(), 2))
 	} else {
 		cmd = zigbee.command(zigbee.LEVEL_CONTROL_CLUSTER, COMMAND_MOVE_LEVEL_ONOFF, zigbee.convertToHexString(Math.round(data * 255 / 100), 2))
