@@ -14,6 +14,7 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    04/23/2021 v1.3 - Added readAttribute for battery level to refresh()
  *    03/30/2021 v1.2 - Added preference and logic to set closed level of window shade
  *    03/30/2021 v1.1 - Removed descTextOutput preference and changed all logging to log on debugOutput
  *                    - Added preference and logic to invert the SetLevel level percentage if set to
@@ -33,8 +34,8 @@ metadata {
 		capability "Health Check"
 		capability "Switch Level"
 
-	    command "pause"
-        command "setPresetPosition"
+		command "pause"
+		command "setPresetPosition"
 
 		// IKEA
 		fingerprint manufacturer: "IKEA of Sweden", model: "KADRILJ roller blind", deviceJoinName: "IKEA Window Treatment" // raw description 01 0104 0202 00 09 0000 0001 0003 0004 0005 0020 0102 1000 FC7C 02 0019 1000 //IKEA KADRILJ Blinds
@@ -43,14 +44,14 @@ metadata {
 		// Yookee yooksmart
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0102", outClusters: "0019", manufacturer: "Yookee", model: "D10110", deviceJoinName: "Yookee Window Treatment"
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0102", outClusters: "0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
-        fingerprint inClusters: "0000,0001,0003,0004,0005,0020,0102", outClusters: "0003,0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
+		fingerprint inClusters: "0000,0001,0003,0004,0005,0020,0102", outClusters: "0003,0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
 	}
 
 	preferences {
-        input "invertSetLevel", "bool", title: "Invert Level/Position Percentage?", description: '<div><i>Invert the SetLevel or SetPosition percentage</i></div><br>', defaultValue: false
-        input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
-        input "closedPosition", "number", title: " Closed position", description: "<div><i>Set the position for fully closed window shade</i></div><br>", defaultValue: 0, range: "1..100", required: false, displayDuringSetup: false
-        input "debugOutput", "bool", title: "Enable debug logging?", description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
+		input "invertSetLevel", "bool", title: "Invert Level/Position Percentage?", description: '<div><i>Invert the SetLevel or SetPosition percentage</i></div><br>', defaultValue: false
+		input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
+		input "closedPosition", "number", title: " Closed position", description: "<div><i>Set the position for fully closed window shade</i></div><br>", defaultValue: 0, range: "1..100", required: false, displayDuringSetup: false
+		input "debugOutput", "bool", title: "Enable debug logging?", description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
 	}
 }
 
@@ -103,7 +104,6 @@ def parse(String description) {
 			}
 		} else if (!supportsLiftPercentage() && descMap?.clusterInt == zigbee.LEVEL_CONTROL_CLUSTER && descMap.value) {
 			def valueInt = Math.round((zigbee.convertHexToInt(descMap.value)) / 255 * 100)
-
 			levelEventHandler(valueInt)
 		} else if (reportsBatteryPercentage() && descMap?.clusterInt == zigbee.POWER_CONFIGURATION_CLUSTER && zigbee.convertHexToInt(descMap?.attrId) == BATTERY_PERCENTAGE_REMAINING && descMap.value) {
 			def batteryLevel = zigbee.convertHexToInt(descMap.value)
@@ -142,6 +142,7 @@ def updateFinalState() {
 }
 
 def batteryPercentageEventHandler(batteryLevel) {
+	if (debugOutput) log.debug "batteryPercentageEventHandler - batteryLevel: ${batteryLevel}"
 	if (batteryLevel != null) {
 		batteryLevel = Math.min(100, Math.max(0, batteryLevel))
 		sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: "{{ device.displayName }} battery was {{ value }}%"])
@@ -149,21 +150,21 @@ def batteryPercentageEventHandler(batteryLevel) {
 }
 
 def close() {
-    if (debugOutput) log.info "close()"
+	if (debugOutput) log.info "close()"
 	//setLevel(100)
-    runIn(5, refresh)
-    zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
+	runIn(5, refresh)
+	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
 }
 
 def open() {
 	if (debugOutput) log.info "open()"
 	//setLevel(0)
-    runIn(5, refresh)
-    zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
+	runIn(5, refresh)
+	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
 }
 
 def setLevel(data, rate = null) {
-    if (debugOutput) log.info "setLevel() level = ${data}"
+	if (debugOutput) log.info "setLevel() level = ${data}"
 	def cmd
 	if (supportsLiftPercentage()) {
 		if (shouldInvertLiftPercentage() || invertSetLevel) {
@@ -182,7 +183,7 @@ def setLevel(data, rate = null) {
 }
 
 def setPosition(value){
-    if (debugOutput) log.info "setPosition() level = ${value}"
+	if (debugOutput) log.info "setPosition() level = ${value}"
 	setLevel(value)
 }
 
@@ -196,7 +197,7 @@ def pause() {
 }
 
 def setPresetPosition() {
-    setLevel(preset ?: 50)
+	setLevel(preset ?: 50)
 }
 
 /**
@@ -214,6 +215,11 @@ def refresh() {
 	} else {
 		cmds = zigbee.readAttribute(zigbee.LEVEL_CONTROL_CLUSTER, ATTRIBUTE_CURRENT_LEVEL)
 	}
+    
+	if (reportsBatteryPercentage()) {
+		cmds += zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_PERCENTAGE_REMAINING)
+	}
+    
 	return cmds
 }
 
@@ -235,7 +241,6 @@ def configure() {
 	}
 
 	if (reportsBatteryPercentage()) {
-
 		cmds += zigbee.configureReporting(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_PERCENTAGE_REMAINING, DataType.UINT8, 30, 21600, 0x01)
 	}
 
@@ -247,7 +252,7 @@ def usesLocalGroupBinding() {
 }
 
 private def isBindingTableMessage(description) {   
-    return false
+	return false
 }
 
 private def parseBindingTableMessage(description) {
@@ -283,7 +288,7 @@ def shouldInvertLiftPercentage() {
 }
 
 def reportsBatteryPercentage() {
-	return isIkeaKadrilj() || isIkeaFyrtur()
+	return isIkeaKadrilj() || isIkeaFyrtur() || isYooksmartOrYookee()
 }
 
 def isIkeaKadrilj() {
