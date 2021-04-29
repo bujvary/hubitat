@@ -14,6 +14,8 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    04/28/2021 v1.5 - Added scheduled job to get battery status once an hour
+ *    04/25/2021 v1.4 - Correct description text for battery level update
  *    04/23/2021 v1.3 - Added readAttribute for battery level to refresh()
  *    03/30/2021 v1.2 - Added preference and logic to set closed level of window shade
  *    03/30/2021 v1.1 - Removed descTextOutput preference and changed all logging to log on debugOutput
@@ -50,7 +52,7 @@ metadata {
 	preferences {
 		input "invertSetLevel", "bool", title: "Invert Level/Position Percentage?", description: '<div><i>Invert the SetLevel or SetPosition percentage</i></div><br>', defaultValue: false
 		input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
-		input "closedPosition", "number", title: " Closed position", description: "<div><i>Set the position for fully closed window shade</i></div><br>", defaultValue: 0, range: "1..100", required: false, displayDuringSetup: false
+		input "closedPosition", "number", title: " Closed position", description: "<div><i>Set the position for fully closed window shade</i></div><br>", defaultValue: 0, range: "0..100", required: false, displayDuringSetup: false
 		input "debugOutput", "bool", title: "Enable debug logging?", description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
 	}
 }
@@ -80,6 +82,19 @@ private List<Map> collectAttributes(Map descMap) {
 def installed() {
 	if (debugOutput) log.debug "installed"
 	sendEvent(name: "supportedWindowShadeCommands", value: JsonOutput.toJson(["open", "close", "pause"]))
+	initialize()
+}
+
+def uninstalled() {
+	if (debugOutput) log.debug "uninstalled"
+	unschedule()
+}
+
+def initialize() {
+	if (debugOutput) log.debug "initialize"
+	unschedule()
+	if (debugOutput) runIn(1800,logsOff)
+	schedule("0 0 0/1 1/1 * ? *", refreshBattery)
 }
 
 // Parse incoming device messages to generate events
@@ -145,7 +160,9 @@ def batteryPercentageEventHandler(batteryLevel) {
 	if (debugOutput) log.debug "batteryPercentageEventHandler - batteryLevel: ${batteryLevel}"
 	if (batteryLevel != null) {
 		batteryLevel = Math.min(100, Math.max(0, batteryLevel))
-		sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: "{{ device.displayName }} battery was {{ value }}%"])
+        if (debugOutput) log.debug "batteryPercentageEventHandler - batteryLevel: ${batteryLevel}"
+        descriptionText = "${device.displayName} battery is ${batteryLevel}%"
+		sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: descriptionText])
 	}
 }
 
@@ -218,6 +235,16 @@ def refresh() {
     
 	if (reportsBatteryPercentage()) {
 		cmds += zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_PERCENTAGE_REMAINING)
+	}
+    
+	return cmds
+}
+
+def refreshBattery() {
+	if (debugOutput) log.info "refreshBattery()"
+	def cmds
+	if (reportsBatteryPercentage()) {
+		cmds = zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_PERCENTAGE_REMAINING)
 	}
     
 	return cmds
@@ -304,8 +331,7 @@ def isYooksmartOrYookee() {
 }
 
 def updated() {
-	unschedule()
-	if (debugOutput) runIn(1800,logsOff)
+	initialize()
 }
 
 def logsOff(){
