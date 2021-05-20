@@ -25,6 +25,12 @@
       "category": "Control",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/zigbee-window-shade-with-battery/packageManifest.json",
       "description": "Control ZigBee Window Shade with Batteries from IKEA, Yookee and Yooksmart"
+    },
+    {
+      "name": "Zooz Garage Door Opener",
+      "category": "Control",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/zooz-garage-door-opener/packageManifest.json",
+      "description": "Control garage doors with a Zooz ZEN16 or ZEN17 relay"
     }
   ]
 }
