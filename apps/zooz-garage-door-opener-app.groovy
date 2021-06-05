@@ -5,7 +5,7 @@
  * WARNING: Using a homemade garage door opener can be dangerous so use this code at your own risk.
  *
  *  Changelog:
- *    2.0 (06/05/2021)
+ *    2.0 (06/05/2021) Brian Ujvary
  *      - Added door open contact sensor and door acceleration sensor options plus required door opening/closing
  *        logic for the new sensors
  *
