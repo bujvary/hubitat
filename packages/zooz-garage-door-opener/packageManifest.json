@@ -1,28 +1,28 @@
 {
 	"packageName": "Zooz Garage Door Opener",
 	"minimumHEVersion": "1.2",
-	"author": "Kevin LaFramboise",
-	"dateReleased": "2021-05-19",
+	"author": "Kevin LaFramboise/Brian Ujvary",
+	"dateReleased": "2021-06-05",
 	"documentationLink": "https://github.com/krlaframboise/Hubitat",
 	"apps" : [
 		{
 			"id" : "9dfe7603-30ba-49b0-b4d0-14342d49fba9",
 			"name": "Zooz Garage Door Opener",
 			"namespace": "Zooz",
-			"location": "https://raw.githubusercontent.com/krlaframboise/Hubitat/master/apps/zooz/zooz-garage-door-opener.src/zooz-garage-door-opener.groovy",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/zooz-garage-door-opener.groovy",
 			"required": true,
 			"oauth": false,
-			"version": "1.0.1",
+			"version": "1.1",
 			"primary": true
 		},
 		{
 			"id" : "3fff206d-5a66-4557-a65a-ff7333b9811b",
 			"name": "Zooz Garage Door Opener App",
 			"namespace": "Zooz",
-			"location": "https://raw.githubusercontent.com/krlaframboise/Hubitat/master/apps/zooz/zooz-garage-door-opener-app.src/zooz-garage-door-opener-app.groovy",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/zooz-garage-door-opener-app.groovy",
 			"required": true,
 			"oauth": false,
-			"version": "1.2"
+			"version": "2.0"
 		}
 	],
 	"drivers" : [
@@ -30,9 +30,9 @@
 			"id": "861e393b-45ce-4227-8000-994280b5c9e1",
 			"name": "Zooz Garage Door",
 			"namespace": "Zooz",
-			"location": "https://raw.githubusercontent.com/krlaframboise/Hubitat/master/drivers/zooz/zooz-garage-door.src/zooz-garage-door.groovy",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/zooz-garage-door.groovy",
 			"required": true,
-			"version": "1.0.1"
+			"version": "1.1"
 		}
 	]
 }
