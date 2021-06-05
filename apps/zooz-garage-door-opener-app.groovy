@@ -1,10 +1,13 @@
 /*
- *  Zooz Garage Door Opener App v1.2	(Apps Code)
+ *  Zooz Garage Door Opener App v2.0	(Apps Code)
  *
  *
  * WARNING: Using a homemade garage door opener can be dangerous so use this code at your own risk.
  *
  *  Changelog:
+ *    2.0 (06/05/2021)
+ *      - Added door open contact sensor and door acceleration sensor options plus required door opening/closing
+ *        logic for the new sensors
  *
  *    1.2 (08/10/2020)
  *      - Added notifications for when door fails to open or close.
@@ -54,7 +57,7 @@ definition(
 	category: "Convenience",
     iconUrl: "",
     iconX2Url: "",
-    importUrl: "https://raw.githubusercontent.com/krlaframboise/Hubitat/master/apps/zooz/zooz-garage-door-opener-app.src/zooz-garage-door-opener-app.groovy"
+    importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/zooz-garage-door-opener-app.groovy"
 )
 
 
