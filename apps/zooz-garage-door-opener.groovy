@@ -6,6 +6,9 @@
  *
  *  Changelog:
  *
+ *    1.1 (06/05/2021) Brian Ujvary
+ *      - Updated Import Url
+ *
  *    1.0.1 (05/09/2020)
  *      - Added Import Url
  *
