@@ -1,5 +1,6 @@
 {
 	"packageName": "Zooz Garage Door Opener",
+	"version": "2.0.0",
 	"minimumHEVersion": "1.2",
 	"author": "Kevin LaFramboise/Brian Ujvary",
 	"dateReleased": "2021-06-05",
