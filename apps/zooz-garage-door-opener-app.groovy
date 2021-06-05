@@ -8,7 +8,7 @@
  *    2.0 (06/05/2021) Brian Ujvary
  *      - Added door open contact sensor and door acceleration sensor options plus required door opening/closing
  *        logic for the new sensors
- *      - Update Import Url
+ *      - Updated Import Url
  *
  *    1.2 (08/10/2020)
  *      - Added notifications for when door fails to open or close.
