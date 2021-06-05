@@ -1,5 +1,5 @@
 /*
- *  Zooz Garage Door v1.0.1	(Drivers Code)
+ *  Zooz Garage Door v1.1	(Drivers Code)
  *
  *
  *  Changelog:
