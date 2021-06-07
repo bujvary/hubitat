@@ -32,9 +32,9 @@ metadata {
 		capability "Battery"
 		capability "Configuration"
 		capability "Refresh"
-		capability "Window Shade"
-		capability "Health Check"
-		capability "Switch Level"
+		capability "WindowShade"
+		capability "HealthCheck"
+		capability "SwitchLevel"
 
 		command "pause"
 		command "setPresetPosition"
