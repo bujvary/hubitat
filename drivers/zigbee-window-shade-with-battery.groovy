@@ -14,6 +14,7 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    06/07/2021 v1.6 - Updated capabilities to match Hubitat documentation
  *    04/28/2021 v1.5 - Added scheduled job to get battery status once an hour
  *    04/25/2021 v1.4 - Correct description text for battery level update
  *    04/23/2021 v1.3 - Added readAttribute for battery level to refresh()
