@@ -1,5 +1,5 @@
 /*
- *  Zooz Garage Door Opener App v2.0	(Apps Code)
+ *  Zooz Garage Door Opener App v2.1	(Apps Code)
  *
  *
  * WARNING: Using a homemade garage door opener can be dangerous so use this code at your own risk.
