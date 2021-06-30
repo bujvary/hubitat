@@ -3,8 +3,8 @@
   "author": "Brian Ujvary",
   "version": "1.0.9",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2021-02-19",
-  "releaseNotes": "BLE Presence Gateway Driver v1.0.8 - Refactored startup delay logic",
+  "dateReleased": "2021-06-30",
+  "releaseNotes": "BLE Presence Gateway Driver v1.0.9 - Cleaned up debug messages",
   "drivers": [
     {
       "id": "e282ac6e-b773-4a46-9eca-9e1adfdc3654",
