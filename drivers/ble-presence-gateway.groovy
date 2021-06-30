@@ -24,8 +24,9 @@
  *
  *
  *  Changes:
+ *  1.0.8 - Cleaned up debug messages
  *  1.0.7 - Refactored startup delay logic
-            added reconnect()
+ *          added reconnect()
  *  1.0.6 - Added a startup delay for the MQTT connection since the driver starts running before the systemStart event
  *  1.0.5 - Modified to only send one lastUpdated event per JSON payload from BLE gateway
  *  1.0.4 - Renamed the driver and updated the importURL
@@ -141,7 +142,7 @@ def publishMsg(String s) {
     https://github.com/parasaurolophus/hubitat-mqtt-connection/blob/master/mqtt-connection-driver.groovy
 */
 def connect() {
-    log.debug "state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
+    log.info "connect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
     state.reconnect = true
     while (!state.connected && state.reconnect) {
         try {
@@ -170,7 +171,7 @@ def connect() {
 }
 
 def disconnect() {
-    log.debug "state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
+    log.info "disconnect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
     state.reconnect = false
     
     if (state.connected) {
@@ -189,7 +190,7 @@ def disconnect() {
         
     state.connected = false
     sendEvent(name: "connection", value: "disconnected")
-    log.debug "state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
+    log.info "disconnect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
 }
 
 def mqttClientStatus(String message){
@@ -209,16 +210,16 @@ def logsOff(){
 }
 
 private removeChildDevices() {
-  log.debug "Removing child devices"
+    log.info "Removing child devices"
     try {
         getChildDevices()?.each {
           try {
               deleteChildDevice(it.deviceNetworkId)
             } catch (e) {
-                log.debug "Error deleting ${it.deviceNetworkId}: ${e}"
+                log.info "Error deleting ${it.deviceNetworkId}: ${e}"
             }
         }
     } catch (err) {
-        log.debug "Either no children exist or error finding child devices for some reason: ${err}"
+        log.info "Either no children exist or error finding child devices for some reason: ${err}"
     }
 }
