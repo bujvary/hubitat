@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "1.4",
+  "version": "1.5",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-10-08",
-  "releaseNotes": "PowerView App v1.2 - Added logic to update device labels if the device names changed in the PowerView hub",
+  "dateReleased": "2020-06-30",
+  "releaseNotes": "Hunter Douglas PowerView Shade v1.3 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
