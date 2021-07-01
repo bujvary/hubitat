@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    06/30/2021 v1.3 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
  *    04/25/2021 v1.2 - Refactored sendEvent() for battery and shade levels
  *    03/28/2021 v1.1 - Added firmware version and shade type to the Data section of Device Details
  *                    - Changed battery percentage calculation based on information from Hunter Douglas engineers
@@ -29,8 +30,9 @@ metadata {
         capability "Battery"
         capability "Refresh"
         capability "Sensor"
-        capability "Window Shade"
-		capability "Switch Level"
+        capability "WindowShade"
+        capability "Switch"
+		capability "SwitchLevel"
 
         command "calibrate"
         command "jog"
@@ -183,12 +185,15 @@ def updatePosition(position, posKind) {
 
     if (level > 0 && level < 99) {
 		sendEvent(name: "windowShade", value: "partially open", displayed:true)
+        sendEvent(name: "switch", value: "on")
 	}
 	else if (level >= 99) {
 		sendEvent(name: "windowShade", value: "open", displayed:true)
+        sendEvent(name: "switch", value: "on")
 	}
 	else {
 		sendEvent(name: "windowShade", value: "closed", displayed:true)
+        sendEvent(name: "switch", value: "off")
 	}
 }
 
@@ -259,8 +264,12 @@ def setTopPosition(topPosition) {
 }
 
 def setPosition(position) {
-    position = Math.min(Math.max(position.intValue(), 0), 100)
-    parent.setPosition(device, [position: position])
+	setLevel(position)
+}
+
+def setLevel(level, duration = null) {
+    position = Math.min(Math.max(level.intValue(), 0), 100)
+    parent.setPosition(device, [position: level])
 }
 
 def logsOff() {
