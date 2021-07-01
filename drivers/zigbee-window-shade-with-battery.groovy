@@ -14,6 +14,7 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    06/30/2021 v1.7 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
  *    06/07/2021 v1.6 - Updated capabilities to match Hubitat documentation
  *    04/28/2021 v1.5 - Added scheduled job to get battery status once an hour
  *    04/25/2021 v1.4 - Correct description text for battery level update
@@ -35,6 +36,7 @@ metadata {
 		capability "Refresh"
 		capability "WindowShade"
 		capability "HealthCheck"
+		capability "Switch"
 		capability "SwitchLevel"
 
 		command "pause"
@@ -136,25 +138,32 @@ def levelEventHandler(currentLevel) {
 	} else {
 		sendEvent(name: "level", value: currentLevel)
         sendEvent(name: "position", value: currentLevel)
-		if (currentLevel == 0 || currentLevel == 100) {
-			sendEvent(name: "windowShade", value: currentLevel == 0 ? "closed" : "open")
-		} else {
-			if (lastLevel < currentLevel) {
-				sendEvent([name: "windowShade", value: "opening"])
-			} else if (lastLevel > currentLevel) {
-				sendEvent([name: "windowShade", value: "closing"])
-			}
-			runIn(1, "updateFinalState", [overwrite:true])
+
+		if (lastLevel < currentLevel) {
+			sendEvent([name: "windowShade", value: "opening"])
+        } else if (lastLevel > currentLevel) {
+			sendEvent([name: "windowShade", value: "closing"])
 		}
+        
+		runIn(1, "updateFinalState", [overwrite:true])
 	}
 }
 
 def updateFinalState() {
 	def level = device.currentValue("level")
 	if (debugOutput) log.debug "updateFinalState: ${level}"
-	if (level > 0 && level < 100) {
-		sendEvent(name: "windowShade", value: "partially open")
-	}
+
+    if (level < closedPosition)
+        level = 0
+    
+    if (level > 0 && level < 100) {
+        sendEvent(name: "windowShade", value: "partially open")
+        sendEvent(name: "switch", value: "on")
+    }
+    else {
+        sendEvent(name: "windowShade", value: level == 0 ? "closed" : "open")
+        sendEvent(name: "switch", value: level == 0 ? "off" : "on")
+    }
 }
 
 def batteryPercentageEventHandler(batteryLevel) {
