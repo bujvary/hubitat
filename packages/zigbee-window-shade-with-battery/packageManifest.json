@@ -1,9 +1,9 @@
 {
   "packageName": "ZigBee Window Shade with Battery",
   "author": "Brian Ujvary",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2021-06-07",
+  "dateReleased": "2021-06-30",
   "drivers": [
     {
       "id": "aff7098d-03cf-4205-bb6e-8795ad7b1e10",
