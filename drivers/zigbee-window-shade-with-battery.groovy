@@ -14,6 +14,8 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    07/04/2021 v1.9 - Removed hardcoded close() to setLevel(0)
+ *    07/01/2021 v1.8 - Added definitions for off() and on(), hardcoded close() to setLevel(0)
  *    06/30/2021 v1.7 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
  *    06/07/2021 v1.6 - Updated capabilities to match Hubitat documentation
  *    04/28/2021 v1.5 - Added scheduled job to get battery status once an hour
@@ -178,16 +180,26 @@ def batteryPercentageEventHandler(batteryLevel) {
 
 def close() {
 	if (debugOutput) log.info "close()"
-	//setLevel(100)
 	runIn(5, refresh)
+	//setLevel(0)
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
 }
 
 def open() {
 	if (debugOutput) log.info "open()"
-	//setLevel(0)
 	runIn(5, refresh)
+	//setLevel(100)
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
+}
+
+def off() {
+	if (debugOutput) log.info "off()"
+	close()
+}
+
+def on() {
+	if (debugOutput) log.info "on()"
+	open()
 }
 
 def setLevel(data, rate = null) {
