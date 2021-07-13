@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    07/13/2021 v1.4 - Fixed an issue with maxVoltage set to null on driver upgrade
+ *                    - Added logsOff() to updated() to automatically disable logging
  *    06/30/2021 v1.3 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
  *    04/25/2021 v1.2 - Refactored sendEvent() for battery and shade levels
  *    03/28/2021 v1.1 - Added firmware version and shade type to the Data section of Device Details
@@ -44,7 +46,7 @@ metadata {
     }
 
     preferences {
-        input name: 'maxVoltage', type: 'number', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18'
+        input name: 'maxVoltage', type: 'number', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18', range: "1..100", required: true
         input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
     }
 }
@@ -55,6 +57,8 @@ def installed() {
 
 def initialize() {
     if (logEnable) runIn(900, logsOff)
+    
+    if(settings?.maxVoltage==null) setting?.maxVoltage=18
     
     if (!state."Shade capability information from Hunter Douglas") {
       state."Shade capability information from Hunter Douglas" = '''
@@ -134,6 +138,10 @@ def initialize() {
     }
 }
 
+def updated() {
+    if (logEnable) runIn(900, logsOff)
+}
+
 def refresh() {
     parent?.pollShade(device)
 }
@@ -160,7 +168,8 @@ public handleEvent(shadeJson) {
 
     if (shadeJson?.batteryStrength) {
         def battVoltage = shadeJson.batteryStrength / 10
-        def batteryLevel = (int)((battVoltage / maxVoltage) * 100)
+        if (logEnable) log.debug "handleEvent: battVoltage = ${battVoltage}, maxVoltage = ${settings?.maxVoltage}"
+        def batteryLevel = (int)((battVoltage / settings?.maxVoltage) * 100)
         
         state.batteryVoltage = battVoltage
         descriptionText = "${device.displayName} battery is ${batteryLevel}%"
