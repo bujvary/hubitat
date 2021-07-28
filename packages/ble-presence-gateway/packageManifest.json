@@ -1,10 +1,10 @@
 {
   "packageName": "BLE Presence Gateway",
   "author": "Brian Ujvary",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2021-06-30",
-  "releaseNotes": "BLE Presence Gateway Driver v1.0.9 - Cleaned up debug messages",
+  "dateReleased": "2021-07-28",
+  "releaseNotes": "BLE Presence Gateway Driver v1.0.10 - Added option to disable the lastUpdated event and added call to logsOff in updated function",
   "drivers": [
     {
       "id": "e282ac6e-b773-4a46-9eca-9e1adfdc3654",
