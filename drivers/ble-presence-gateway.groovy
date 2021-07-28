@@ -24,6 +24,8 @@
  *
  *
  *  Changes:
+ *  1.0.9 - Added option to disable the lastUpdated event
+ *          added call to logsOff in updated function
  *  1.0.8 - Cleaned up debug messages
  *  1.0.7 - Refactored startup delay logic
  *          added reconnect()
@@ -48,7 +50,7 @@ metadata {
         
         // State of the connection to the MQTT broker ("connected" or "disconnected").
         attribute "connection", "String"
-        attribute "lastUpdate", "String"
+        attribute "lastUpdated", "String"
         
         command "publishMsg", ["String"]
         command "reconnect"
@@ -64,6 +66,7 @@ metadata {
         input name: "topicPub", type: "text", title: "Topic to Publish:", description: "Topic Value (topic/device/value)", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
+        input name: "disableLastUpdated", type: "bool", title: "Disable LastUpdated Event", required: false, defaultValue: false, displayDuringSetup: true
         input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
     }
 }
@@ -77,6 +80,8 @@ def installed() {
 
 def updated() {
     if (logEnable) log.info "${device.displayName}.updated()"
+    if (logEnable) runIn(900,logsOff)
+    
     reconnect()
 }
 
@@ -128,8 +133,10 @@ def parse(String description) {
         macChild.parse(beacon.rssi)
     }
     
-    if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
-    sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
+    if (!disableLastUpdated) {
+        if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
+        sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
+    }
 }
 
 def publishMsg(String s) {
