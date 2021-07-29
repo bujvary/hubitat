@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "1.6",
+  "version": "1.7",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2020-07-13",
-  "releaseNotes": "Hunter Douglas PowerView Shade v1.4 - Fixed an issue with maxVoltage set to null on driver upgrade and added logsOff() to updated() to automatically disable logging",
+  "dateReleased": "2020-07-28",
+  "releaseNotes": "Hunter Douglas PowerView Shade v1.5 - Added capabilities override preference",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
