@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    07/28/2021 v1.5 - Added capabilities override preference
  *    07/13/2021 v1.4 - Fixed an issue with maxVoltage set to null on driver upgrade
  *                    - Added logsOff() to updated() to automatically disable logging
  *    06/30/2021 v1.3 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
@@ -28,6 +29,7 @@
  */
 metadata {
     definition(name: "Hunter Douglas PowerView Shade", namespace: "hdpowerview", author: "Chris Lang", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy") {
+        capability "Initialize"
         capability "Actuator"
         capability "Battery"
         capability "Refresh"
@@ -46,6 +48,18 @@ metadata {
     }
 
     preferences {
+        input name: 'capabilityOverride', type: 'enum', title: '<b>Shade Capability Override</b>', description: '<div><i>Only set this if your shade capabilities value is -1. Use the table above to select the correct shade capability.</i></div><br>', displayDuringSetup: false, required: false, options: [
+            0: "Bottom Up",
+            1: "Bottom Up Tilt 90°",
+            2: "Bottom Up Tilt 180°",
+            3: "Vertical",
+            4: "Vertical Tilt 180°",
+            5: "Tilt Only 180°",
+            6: "Top Down",
+            7: "Top Down Bottom Up",
+            8: "Duolite Lift",
+            9: "Duolite Lift and Tilt 90°"
+        ] 
         input name: 'maxVoltage', type: 'number', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18', range: "1..100", required: true
         input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
     }
@@ -60,6 +74,7 @@ def initialize() {
     
     if(settings?.maxVoltage==null) setting?.maxVoltage=18
     
+    //state.remove("Shade capability information from Hunter Douglas")
     if (!state."Shade capability information from Hunter Douglas") {
       state."Shade capability information from Hunter Douglas" = '''
 <style type="text/css">
@@ -213,7 +228,9 @@ def parse(String description) {}
 def open() {
     if (logEnable) log.debug "Executing 'open'"
     
-    switch (state.capabilities) {
+    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+
+    switch (shadeCapabilities) {
         case 0:    // Bottom Up
             parent.setPosition(device, [bottomPosition: 100])
             break
@@ -227,6 +244,7 @@ def open() {
             parent.setPosition(device, [bottomPosition: 100, topPosition: 0])
             break
         default:
+            log.debug "open: case default"
             break
     }
 }
@@ -234,7 +252,9 @@ def open() {
 def close() {
     if (logEnable) log.debug "Executing 'close'"
     
-    switch (state.capabilities) {
+    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+
+    switch (shadeCapabilities) {
         case 0:    // Botton Up
             parent.setPosition(device, [bottomPosition: 0])
             break
