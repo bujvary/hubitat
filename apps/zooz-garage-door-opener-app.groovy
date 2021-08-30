@@ -1,10 +1,16 @@
 /*
- *  Zooz Garage Door Opener App v2.1	(Apps Code)
+ *  Zooz Garage Door Opener App v2.3	(Apps Code)
  *
  *
  * WARNING: Using a homemade garage door opener can be dangerous so use this code at your own risk.
  *
  *  Changelog:
+ *    2.3 (08/30/2021) Brian Ujvary
+ *      - Fixed bug where ope contact would cause "failed to close" message
+ *
+ *    2.2 (07/30/2021) Brian Ujvary
+ *      - Modified logic to check door status when open/close contacts report state
+ *
  *    2.1 (06/08/2021) Brian Ujvary
  *      - Fixed logic to indicate door was closing when manually closed
  *    
@@ -406,23 +412,25 @@ void openContactEventHandler(evt) {
     if (evt.value == 'closed') {
         logDebug "${settings?.openContactSensor?.displayName} detected that ${childDoorOpener?.displayName} is fully open"
         sendDoorEvents("open")
+        unschedule()
     }
     else if (evt.value == "open" && doorStatus == "closing") {
         logDebug "${settings?.closedContactSensor?.displayName} detected that ${childDoorOpener?.displayName} is closing"
-        sendDoorEvents("open", "closing")
+        sendDoorEvents("closed", "closing")
+        runIn(operatingDurationSetting, checkDoorStatus)
     }
     else {
         if ((evt.value == "open") && (doorStatus == "open")) {
 		    // Door manually opened or relay failed to report ON when physical switch pushed
-           sendDoorEvents("open", "closing")
+            sendDoorEvents("open", "closing")
+            runIn(operatingDurationSetting, checkDoorStatus)
         }
         else if ((evt.value == "closed") && (doorStatus == "open")) {
 			// Door manually opened or relay failed to report ON when physical switch pushed
 			sendDoorEvents("open")
+            unschedule()
 		}
     }
-    
-	runIn(operatingDurationSetting, checkDoorStatus)
 }
 
 
@@ -433,23 +441,25 @@ void closedContactEventHandler(evt) {
     if (evt.value == "closed") {
         logDebug "${settings?.closedContactSensor?.displayName} detected that ${childDoorOpener?.displayName} is fully closed"
         sendDoorEvents("closed")
+        unschedule()
     } 
     else if (evt.value == "open" && doorStatus == "opening") {
         logDebug "${settings?.closedContactSensor?.displayName} detected that ${childDoorOpener?.displayName} is opening"
         sendDoorEvents("open", "opening")
+        runIn(operatingDurationSetting, checkDoorStatus)
     }
     else {
 		if ((evt.value == "open") && (doorStatus == "closed")) {
 			// Door manually opened or relay failed to report ON when physical switch pushed
             sendDoorEvents("open", "opening")
+            runIn(operatingDurationSetting, checkDoorStatus)
 		}
 		else if ((evt.value == "closed") && (doorStatus == "open")) {
 			// Door manually closed or relay failed to report ON when physical switch pushed
 			sendDoorEvents("closed")
+            unschedule()
 		}
     }
-    
-	runIn(operatingDurationSetting, checkDoorStatus)
 }
 
 
