@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    09/24/2021 v1.6 - Fixed error in battery level calculation
+ *                    - Added plug-in power supply preference
  *    07/28/2021 v1.5 - Added capabilities override preference
  *    07/13/2021 v1.4 - Fixed an issue with maxVoltage set to null on driver upgrade
  *                    - Added logsOff() to updated() to automatically disable logging
@@ -59,9 +61,10 @@ metadata {
             7: "Top Down Bottom Up",
             8: "Duolite Lift",
             9: "Duolite Lift and Tilt 90°"
-        ] 
+        ]
+        input name: 'pluggedIn', type: 'bool', title: '<b>Plug-in power supply?</b>', description: '<div><i>Automatically sets battery level to 100% if enabled</i></div><br>', defaultValue: false
         input name: 'maxVoltage', type: 'number', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18', range: "1..100", required: true
-        input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
+        input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', defaultValue: true
     }
 }
 
@@ -182,9 +185,14 @@ public handleEvent(shadeJson) {
     }
 
     if (shadeJson?.batteryStrength) {
-        def battVoltage = shadeJson.batteryStrength / 10
+        def batteryLevel = 100
+        def battVoltage = (int)(shadeJson.batteryStrength / 10)
+        
         if (logEnable) log.debug "handleEvent: battVoltage = ${battVoltage}, maxVoltage = ${settings?.maxVoltage}"
-        def batteryLevel = (int)((battVoltage / settings?.maxVoltage) * 100)
+        
+        if (!pluggedIn) {
+            batteryLevel = (int)((battVoltage / (int)settings?.maxVoltage) * 100)
+        }
         
         state.batteryVoltage = battVoltage
         descriptionText = "${device.displayName} battery is ${batteryLevel}%"
