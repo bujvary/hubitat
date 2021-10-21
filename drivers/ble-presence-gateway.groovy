@@ -4,7 +4,7 @@
  *  Design Usage:
  *  This driver is used to get BLE beacon broadcast data from a BLE Wifi Gateway that posts data to a MQTT broker.
  *
- *  Copyright 2019 Brian Ujvary
+ *  Copyright 2021 Brian Ujvary
  *
  *  Based on work by Aaron Ward, Kirk Rader
  *  
@@ -24,6 +24,9 @@
  *
  *
  *  Changes:
+ *  1.1.0 - Refactored startup delay logic again
+ *          added a generic component switch for vehicle presence override
+ *          added logic to control the generic component switch in initialize(), connect() and disconnect()
  *  1.0.9 - Added option to disable the lastUpdated event
  *          added call to logsOff in updated function
  *  1.0.8 - Cleaned up debug messages
@@ -58,16 +61,17 @@ metadata {
 
     preferences {
         input name: "MQTTBroker", type: "text", title: "MQTT Broker Address:", required: true, displayDuringSetup: true
-        input name: "username", type: "text", title: "MQTT Username:", description: "(blank if none)", required: false, displayDuringSetup: true
-        input name: "password", type: "password", title: "MQTT Password:", description: "(blank if none)", required: false, displayDuringSetup: true
-        input name: "clientid", type: "text", title: "MQTT Client ID:", description: "(blank if none)", required: false, displayDuringSetup: true
-        input name: "connectDelay", type: "integer", title: "MQTT Connect Delay:", description: "On hub startup (in seconds)", required: false, defaultValue: 120, displayDuringSetup: true
-        input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "Example Topic (topic/device/#)", required: false, displayDuringSetup: true
-        input name: "topicPub", type: "text", title: "Topic to Publish:", description: "Topic Value (topic/device/value)", required: false, displayDuringSetup: true
+        input name: "username", type: "text", title: "MQTT Username:", description: "<div><i>(blank if none)</i></div>", required: false, displayDuringSetup: true
+        input name: "password", type: "password", title: "MQTT Password:", description: "<div><i>(blank if none)</i></div>", required: false, displayDuringSetup: true
+        input name: "clientid", type: "text", title: "MQTT Client ID:", description: "<div><i>(blank if none)</i></div>", required: false, displayDuringSetup: true
+        input name: "connectDelay", type: "integer", title: "MQTT Connect Delay:", description: "<div><i>On hub startup (in seconds)</i></div>", required: true, defaultValue: 60, displayDuringSetup: true
+        input name: "overrideEnableDelay", type: "integer", title: "Vehicle Presence Override Enable Delay:", description: "<div><i>On MQTT connect (in seconds)</i></div>", required: true, defaultValue: 10, displayDuringSetup: true
+        input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "<div><i>Example Topic (topic/device/#)</i></div>", required: false, displayDuringSetup: true
+        input name: "topicPub", type: "text", title: "Topic to Publish:", description: "<div><i>Topic Value (topic/device/value)</i></div>", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
         input name: "disableLastUpdated", type: "bool", title: "Disable LastUpdated Event", required: false, defaultValue: false, displayDuringSetup: true
-        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
+        input name: "logEnable", type: "bool", title: "Enable logging", description: "<div><i>Automatically disables after 15 minutes</i></div>", required: true, defaultValue: true
     }
 }
 
@@ -75,7 +79,7 @@ def installed() {
     log.info "${device.displayName}.installed()"
     
     if (settings.MQTTBroker?.trim())
-         reconnect()
+         connect()
 }
 
 def updated() {
@@ -93,11 +97,12 @@ def uninstalled() {
 
 def initialize() {
     if (logEnable) runIn(900,logsOff)
-
-    disconnect()
     
-    log.info "Hub startup, connecting to mqtt in " + connectDelay + " seconds"
-    runIn(connectDelay.toInteger(), reconnect)
+    state.connected = false
+    updateOverrideSwitch("on")
+    
+    log.info "hub startup: connecting to mqtt in ${connectDelay} seconds"
+    runIn(connectDelay.toInteger(), connect)
 }
 
 def reconnect() {
@@ -105,7 +110,6 @@ def reconnect() {
     connect()
 }
 
-// Parse incoming device messages to generate events
 def parse(String description) {
     Date date = new Date();
     
@@ -125,7 +129,7 @@ def parse(String description) {
         def macDNI = "ble:" + beacon.mac
         def macChild = getChildDevice(macDNI)
         if (macChild == null) {
-            if (logEnable) log.warn "parse: child presence sensor does not exist for " + macDNI
+            if (logEnable) log.warn "parse: child presence sensor does not exist for ${macDNI}"
             macChild = addChildDevice("bujvary", "Virtual Presence with Timeout", macDNI, [label: "Vehicle Presence Sensor", isComponent: false])
         }
         
@@ -170,6 +174,8 @@ def connect() {
             interfaces.mqtt.subscribe(settings?.topicSub)
             
             sendEvent(name: "connection", value: "connected")
+            
+            runIn(overrideEnableDelay.toInteger(), updateOverrideSwitch, [data: "off"])
         } catch(e) {
             if (logEnable) log.debug "Connect error: ${e.message}"
             runIn (5,"connect")
@@ -197,6 +203,9 @@ def disconnect() {
         
     state.connected = false
     sendEvent(name: "connection", value: "disconnected")
+    
+    updateOverrideSwitch("on")
+    
     log.info "disconnect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
 }
 
@@ -211,12 +220,7 @@ def mqttClientStatus(String message){
 
 }
 
-def logsOff(){
-    log.warn "Debug logging disabled."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
-}
-
-private removeChildDevices() {
+def removeChildDevices() {
     log.info "Removing child devices"
     try {
         getChildDevices()?.each {
@@ -229,4 +233,32 @@ private removeChildDevices() {
     } catch (err) {
         log.info "Either no children exist or error finding child devices for some reason: ${err}"
     }
+}
+
+def updateOverrideSwitch(state) {
+    log.info "Updating vehicle presence override switch state to ${state}"
+    
+    com.hubitat.app.DeviceWrapper cd = getChildDevice("${device.deviceNetworkId}-switch")
+    if(cd != null) {
+        cd.parse([[name: "switch", value: state, descriptionText:"${cd.displayName} was turned ${state}", isStateChange: true]])
+    }
+}
+
+void componentRefresh(cd) {
+    log.warn "componentRefresh() not implemented"
+}
+
+void componentOn(cd){
+    if (logEnable) log.debug "componentOn(${cd.displayName})"
+    getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
+}
+
+void componentOff(cd){
+    if (logEnable) log.debug "componentOn(${cd.displayName})"
+    getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
+}
+
+def logsOff(){
+    log.warn "Debug logging disabled."
+    device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
