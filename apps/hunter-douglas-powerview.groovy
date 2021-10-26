@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/26/2021 v1.3 - Added text notification option for low battery wand condition
+ *                    - Fixed update battery level request interval calculation in pollDevices()
  *    10/08/2020 v1.2 - Added logic to update device labels if the device names changed in
  *                      the PowerView hub
  *    06/20/2020 v1.1 - Added retrieval of firmware information and display on main page
@@ -48,6 +50,7 @@ preferences {
     section("Title") {
         page(name: "mainPage")
         page(name: "devicesPage")
+        page(name: "notificationsPage")
         page(name: "roomsPage")
     }
 }
@@ -91,7 +94,12 @@ def mainPage() {
                     def description = (atomicState?.deviceData) ? "Click to modify" : "Click to configure";
                     href "devicesPage", title: "Manage Devices", description: description, state: "complete"
                     atomicState?.loadingDevices = false
-
+                }
+                section("Notifications") {
+                    href "notificationsPage", title: "Text Notifications", description: "Click here for Options", state: "complete"
+                    atomicState?.loadingDevices = false
+                }
+                section("") {
                     input("disablePoll", "bool", title: "Disable periodic polling of devices", required: false, defaultValue: false)
                     input("logEnable", "bool", title: "Enable debug logging", required: false, defaultValue: true)
                 }
@@ -181,6 +189,19 @@ def devicesPage() {
     }
 }
 
+def notificationsPage() {
+	dynamicPage(name: "notificationsPage", title: "", install: false, uninstall: false) {
+		section("<big><b>Notifications</b></big>") {
+			paragraph "Send push notification once per day when shade battery wand is low (as defined by Hunter Douglas)."
+
+			input "shadeBatteryLowDevices", "capability.notification",
+				title: "<b>Send notification to devices(s):</b>",
+				multiple: true,
+				required: false
+		}
+    }
+}
+    
 def roomsPage() {
     def pageProperties = [
         name: "roomsPage",
@@ -372,7 +393,7 @@ def pollDevices(firstPoll = false) {
     }
 
     // Update battery status no more than once an hour
-    if (!atomicState?.lastBatteryUpdate || (atomicState?.lastBatteryUpdate - now) > (60 * 60 * 1000)) {
+    if (!atomicState?.lastBatteryUpdate || (now - atomicState?.lastBatteryUpdate) > (60 * 60 * 1000)) {
         updateBattery = true
         atomicState?.lastBatteryUpdate = now
     }
@@ -875,6 +896,25 @@ void repeaterPollCallback(hubitat.device.HubResponse hubResponse) {
 
     if (logEnable) log.debug "repeaterPollCallback for repeater id ${repeater.id}, calling device ${childDevice}"
     childDevice.handleEvent(repeater)
+}
+
+def sendBatteryLowNotification(shadeDevice) {
+    if (logEnable) log.debug "sendBatteryLowNotification: shadeDevice = ${shadeDevice}"
+    
+    def now = now()
+    
+    // Send low battery wand notification no more than once every 24 hours
+    if (!atomicState?.lastNotificationSent || (now - atomicState?.lastNotificationSent) > (24 * 60 * 60 * 1000)) {
+        atomicState?.lastNotificationSent = now
+        
+		String msg = "${shadeDevice?.displayName} battery wand is low"
+	
+		def pushDevices = settings?.shadeBatteryLowDevices	
+		if (pushDevices) {
+			if (logEnable) log.debug "${shadeDevice?.displayName} - Sending push notification: ${msg}"
+			pushDevices*.deviceNotification(msg)
+		}
+	}
 }
 
 // CORE API
