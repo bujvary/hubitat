@@ -1,0 +1,39 @@
+{
+	"packageName": "Vehicle Remote Starter",
+	"version": "1.0",
+	"minimumHEVersion": "1.2",
+	"author": "Brian Ujvary",
+	"dateReleased": "2021-10-26",
+	"documentationLink": "https://github.com/bujvary/hubitat",
+	"apps" : [
+		{
+			"id" : "13714203-4b27-4317-b1ca-3efd202e86d7",
+			"name": "Vehicle Remote Starter",
+			"namespace": "bujvary",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/vehicle-remote-starter.groovy",
+			"required": true,
+			"oauth": false,
+			"version": "1.0",
+			"primary": true
+		},
+		{
+			"id" : "3292276d-8827-45b9-9b43-7ac459835fd5",
+			"name": "Vehicle Remote Starter App",
+			"namespace": "bujvary",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/vehicle-remote-starter-app.groovy",
+			"required": true,
+			"oauth": false,
+			"version": "1.1"
+		}
+	],
+	"drivers" : [
+		{
+			"id": "f53e41ad-6dea-439f-b34f-4aeceb379a6f",
+			"name": "Vehicle",
+			"namespace": "bujvary",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/vehicle.groovy",
+			"required": true,
+			"version": "1.0"
+		}
+	]
+}
