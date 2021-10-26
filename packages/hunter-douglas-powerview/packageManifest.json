@@ -4,7 +4,7 @@
   "version": "1.9",
   "minimumHEVersion": "0.0",
   "dateReleased": "2021-10-26",
-  "releaseNotes": "Hunter Douglas PowerView Shade v1.9 - Added text notification option for low battery wand condition and fixed update battery level request interval calculation when polling devices",
+  "releaseNotes": "Hunter Douglas PowerView App/Shade - Added text notification option for low battery wand condition and fixed update battery level request interval calculation when polling devices",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
