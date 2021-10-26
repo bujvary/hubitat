@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/26/2021 v1.7 - Added call to sendBatteryLowNotification() if batteryStatus is 1 (low)
  *    09/24/2021 v1.6 - Fixed error in battery level calculation
  *                    - Added plug-in power supply preference
  *    07/28/2021 v1.5 - Added capabilities override preference
@@ -200,6 +201,10 @@ public handleEvent(shadeJson) {
     }
 	
 	state.batteryStatus = shadeJson.batteryStatus;  // 0 = No Status Available, 1 = Low, 2 = Medium, 3 = High, 4 = Plugged In
+    if (state.batteryStatus == 1) {
+        parent.sendBatteryLowNotification(device)
+    }
+    
     state.capabilities = shadeJson.capabilities;
     
     device.updateDataValue("firmwareVersion", "${shadeJson.firmware.revision}.${shadeJson.firmware.subRevision}.${shadeJson.firmware.build}")
