@@ -25,7 +25,7 @@
       "category": "Control",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/vehicle-remote-starter/packageManifest.json",
       "description": "Remotely start your car with a relay"
-    }
+    },
     {
       "name": "ZigBee Window Shade with Battery",
       "category": "Control",
