@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.1.1 - Set state variables on initialize()
  *  1.1.0 - Refactored startup delay logic again
  *          added a generic component switch for vehicle presence override
  *          added logic to control the generic component switch in initialize(), connect() and disconnect()
@@ -99,6 +100,8 @@ def initialize() {
     if (logEnable) runIn(900,logsOff)
     
     state.connected = false
+    state.reconnect = false
+    
     updateOverrideSwitch("on")
     
     log.info "hub startup: connecting to mqtt in ${connectDelay} seconds"
