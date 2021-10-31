@@ -4,7 +4,7 @@
  *  Design Usage:
  *  This driver is a virtual presence with an adjustable departure timeout.
  *
- *  Copyright 2019 Brian Ujvary
+ *  Copyright 2021 Brian Ujvary
  *
  *  Based on work by Ryan Casler, Warren Poschman
  *  
@@ -24,6 +24,8 @@
  *
  *
  *  Changes:
+ *  1.0.6 - Added call to initialize() in updated() for logsOff
+ *        - Defaulted logEnable to false
  *  1.0.5 - Cleaned up debug logging
  *  1.0.4 - Updated the importURL
  *  1.0.3 - Added logic to store rssi value and include in event description text
@@ -46,7 +48,7 @@ metadata {
     preferences {
         input name: "checkInterval", type: "enum", title: "Presence timeout (minutes)",
             defaultValue:"2", options: ["2", "3", "5", "10", "15"]
-        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
+        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
     }
     
     command "arrived"
@@ -65,6 +67,9 @@ def departed() {
 
 def updated() {
     if (logEnable) log.debug "In ${device.displayName}.updated()"
+    
+    initialize()
+    
     stopTimer()
     startTimer()
 }
