@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/30/2021 v1.8 - Added check for the last time the low battery notification was sent
  *    10/26/2021 v1.7 - Added call to sendBatteryLowNotification() if batteryStatus is 1 (low)
  *    09/24/2021 v1.6 - Fixed error in battery level calculation
  *                    - Added plug-in power supply preference
@@ -167,6 +168,8 @@ def refresh() {
 
 public handleEvent(shadeJson) {
     if (logEnable) log.debug "handleEvent: shadeJson = ${shadeJson}"
+    def now = now()
+    
     if (shadeJson?.positions) {
         def positions = shadeJson.positions
         if (positions.posKind1) {
@@ -177,7 +180,6 @@ public handleEvent(shadeJson) {
         }
     } else {
         // If a result doesn't include position, sometimes reissuing the poll will return it.
-        def now = now()
         if (!state?.lastPollRetry || (state?.lastPollRetry - now) > (60 * 10 * 1000)) {
             if (logEnable) log.debug "event didn't contain position, retrying poll"
             state?.lastPollRetry = now
@@ -200,12 +202,13 @@ public handleEvent(shadeJson) {
         sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: descriptionText])
     }
 	
-	state.batteryStatus = shadeJson.batteryStatus;  // 0 = No Status Available, 1 = Low, 2 = Medium, 3 = High, 4 = Plugged In
-    if (state.batteryStatus == 1) {
+	state.batteryStatus = shadeJson?.batteryStatus;  // 0 = No Status Available, 1 = Low, 2 = Medium, 3 = High, 4 = Plugged In
+    if (state.batteryStatus == 1 && (!state?.lastBatteryLowNotify || (now - state?.lastBatteryLowNotify) > (24 * 60 * 60 * 1000))) {
+        state?.lastBatteryLowNotify = now
         parent.sendBatteryLowNotification(device)
     }
     
-    state.capabilities = shadeJson.capabilities;
+    state.capabilities = shadeJson?.capabilities;
     
     device.updateDataValue("firmwareVersion", "${shadeJson.firmware.revision}.${shadeJson.firmware.subRevision}.${shadeJson.firmware.build}")
     device.updateDataValue("shadeTypeID", "${shadeJson.type}")
@@ -214,6 +217,7 @@ public handleEvent(shadeJson) {
 def updatePosition(position, posKind) {
     def level = (int)(position * 100 / 65535)
     def eventName = (posKind == 1) ? "bottomPosition" : "topPosition"
+    
     if (logEnable) log.debug "sending event ${eventName} with value ${level}"
 
     sendEvent(name: eventName, value: level)
