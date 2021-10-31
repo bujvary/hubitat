@@ -24,6 +24,9 @@
  *
  *
  *  Changes:
+ *  1.2.0 - Removed reconnect() and added commands connect and disconnect
+ *        - refactored connect/disconnect logic to prevent an infinite loop when the MQTT broker is down
+ *        - added code back to create the generic component switch for vehicle presence override
  *  1.1.1 - Set state variables on initialize()
  *  1.1.0 - Refactored startup delay logic again
  *          added a generic component switch for vehicle presence override
@@ -57,7 +60,8 @@ metadata {
         attribute "lastUpdated", "String"
         
         command "publishMsg", ["String"]
-        command "reconnect"
+        command "connect"
+        command "disconnect"
     }
 
     preferences {
@@ -65,42 +69,50 @@ metadata {
         input name: "username", type: "text", title: "MQTT Username:", description: "<div><i>(blank if none)</i></div>", required: false, displayDuringSetup: true
         input name: "password", type: "password", title: "MQTT Password:", description: "<div><i>(blank if none)</i></div>", required: false, displayDuringSetup: true
         input name: "clientid", type: "text", title: "MQTT Client ID:", description: "<div><i>(blank if none)</i></div>", required: false, displayDuringSetup: true
-        input name: "connectDelay", type: "integer", title: "MQTT Connect Delay:", description: "<div><i>On hub startup (in seconds)</i></div>", required: true, defaultValue: 60, displayDuringSetup: true
+        input name: "retryTime", type: "number", title: "MQTT Retry Connect Delay:", description: "<div><i>Number of seconds between connection retries if broker goes down</i></div>", defaultValue: 10, required: true
+        input name: "connectDelay", type: "integer", title: "MQTT Startup Connect Delay:", description: "<div><i>On hub startup (in seconds)</i></div>", required: true, defaultValue: 60, displayDuringSetup: true
         input name: "overrideEnableDelay", type: "integer", title: "Vehicle Presence Override Enable Delay:", description: "<div><i>On MQTT connect (in seconds)</i></div>", required: true, defaultValue: 10, displayDuringSetup: true
         input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "<div><i>Example Topic (topic/device/#)</i></div>", required: false, displayDuringSetup: true
         input name: "topicPub", type: "text", title: "Topic to Publish:", description: "<div><i>Topic Value (topic/device/value)</i></div>", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
-        input name: "disableLastUpdated", type: "bool", title: "Disable LastUpdated Event", required: false, defaultValue: false, displayDuringSetup: true
+        input name: "disableLastUpdated", type: "bool", title: "Disable LastUpdated Event", required: false, defaultValue: true, displayDuringSetup: true
         input name: "logEnable", type: "bool", title: "Enable logging", description: "<div><i>Automatically disables after 15 minutes</i></div>", required: true, defaultValue: true
     }
 }
 
 def installed() {
-    log.info "${device.displayName}.installed()"
+    if (logEnable) log.debug "installed()..."
+
+    if (!getChildDevice("${device.deviceNetworkId}-switch")) {
+        addChildDevice("hubitat", "Generic Component Switch", "${device.deviceNetworkId}-switch", [completedSetup: true, label: "Vehicle Presence Override", isComponent: true])
+    }
     
     if (settings.MQTTBroker?.trim())
          connect()
 }
 
 def updated() {
-    if (logEnable) log.info "${device.displayName}.updated()"
+    if (logEnable) log.info "updated()..."
+    
     if (logEnable) runIn(900,logsOff)
     
-    reconnect()
+    disconnect()
+    connect()
 }
 
 def uninstalled() {
+    if (logEnable) log.debug "uninstalled()..."
+    
     if (logEnable) log.info "Disconnecting from mqtt"
     interfaces.mqtt.disconnect()
     removeChildDevices()
 }
 
 def initialize() {
-    if (logEnable) runIn(900,logsOff)
+    if (logEnable) log.debug "initialize()..."
     
-    state.connected = false
-    state.reconnect = false
+    if (logEnable) runIn(900,logsOff)
     
     updateOverrideSwitch("on")
     
@@ -108,12 +120,9 @@ def initialize() {
     runIn(connectDelay.toInteger(), connect)
 }
 
-def reconnect() {
-    disconnect()
-    connect()
-}
-
 def parse(String description) {
+    if (logEnable) log.debug "parse()..."
+    
     Date date = new Date();
     
     topic = interfaces.mqtt.parseMessage(description).topic
@@ -133,7 +142,7 @@ def parse(String description) {
         def macChild = getChildDevice(macDNI)
         if (macChild == null) {
             if (logEnable) log.warn "parse: child presence sensor does not exist for ${macDNI}"
-            macChild = addChildDevice("bujvary", "Virtual Presence with Timeout", macDNI, [label: "Vehicle Presence Sensor", isComponent: false])
+            macChild = addChildDevice("bujvary", "Virtual Presence with Timeout", macDNI, [label: "Vehicle Presence Sensor", isComponent: true])
         }
         
         if (logEnable) log.debug "parse: updating presence sensor data for " + macDNI
@@ -147,80 +156,87 @@ def parse(String description) {
 }
 
 def publishMsg(String s) {
+    if (logEnable) log.debug "publishMsg()..."
+    
+    if (settings?.retained==null) settings?.retained=false
+    if (settings?.QOS==null) setting?.QOS="1"
+    
     if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
     interfaces.mqtt.publish(settings?.topicPub, s, settings?.QOS.toInteger(), settings?.retained)
 }
 
-/*
-    The connect(), disconnect(), mqttClientStatus() borrowed from:
-    https://github.com/parasaurolophus/hubitat-mqtt-connection/blob/master/mqtt-connection-driver.groovy
-*/
 def connect() {
-    log.info "connect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
-    state.reconnect = true
-    while (!state.connected && state.reconnect) {
-        try {
-            if(settings?.retained==null) settings?.retained=false
-            if(settings?.QOS==null) setting?.QOS="1"
+    if (logEnable) log.debug "connect()..."
+    
+    try {
+        mqttbroker = "tcp://" + settings?.MQTTBroker + ":1883"
+        interfaces.mqtt.connect(mqttbroker, settings?.clientid, settings?.username,settings?.password)
         
-            //open connection
-            mqttbroker = "tcp://" + settings?.MQTTBroker + ":1883"
-            interfaces.mqtt.connect(mqttbroker, settings?.clientid, settings?.username,settings?.password)
-        
-            //give it a chance to start
-            pauseExecution(500)
-            
-            state.connected = true
-            log.info "Connection established"
-        
-            if (logEnable) log.debug "Subscribed to: ${settings?.topicSub}"
-            interfaces.mqtt.subscribe(settings?.topicSub)
-            
-            sendEvent(name: "connection", value: "connected")
-            
-            runIn(overrideEnableDelay.toInteger(), updateOverrideSwitch, [data: "off"])
-        } catch(e) {
-            if (logEnable) log.debug "Connect error: ${e.message}"
-            runIn (5,"connect")
+        pauseExecution(1000)
+        if (interfaces.mqtt.isConnected()) {
+            connectionEstablished()
         }
+        else {
+            log.error ("MQTT client failed to connect to broker")
+        }
+        
+    } catch(e) {
+        log.error "MQTT initialize error: ${e.message}"
     }
 }
 
 def disconnect() {
-    log.info "disconnect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
-    state.reconnect = false
+    if (logEnable) log.debug "disconnect()..."
     
-    if (state.connected) {
+    if (interfaces.mqtt.isConnected()) {
         try {
-            interfaces.mqtt.unsubscribe(settings?.topicSub)
+            if (logEnable) log.debug "Attempting to disconnect from MQTT broker"
+            interfaces.mqtt.disconnect()
         } catch (e) {
-            log.error "Error unsubscribing: ${e.message}"
+            log.error "Error disconnecting: ${e.message}"
         }
-    }    
-    
-    try {
-        interfaces.mqtt.disconnect()
-    } catch (e) {
-        log.error "Error disconnecting: ${e.message}"
     }
-        
-    state.connected = false
+    else {
+        log.warn "MQTT client is already disconnected from broker"
+    }
+    
     sendEvent(name: "connection", value: "disconnected")
-    
     updateOverrideSwitch("on")
-    
-    log.info "disconnect() state.connected = ${state.connected}, state.reconnect = ${state.reconnect}"
 }
 
-def mqttClientStatus(String message){
+void mqttClientStatus(String message) {
+    if (logEnable) log.debug "mqttClientStatus()..."
+    
     if (message.startsWith("Error:")) {
-        log.error "mqttClientStatus: ${message}"
-        disconnect()
-        runIn (5,"connect")
-    } else {
-        log.info "mqttClientStatus: ${message}"
+        log.error "MQTT client message - ${message}"
+    }
+    else {
+        log.info "MQTT client message - ${message}"
     }
 
+    if (message.contains ("Connection lost")) {
+        connectionLost()
+    }
+}
+
+void connectionEstablished() {
+    if (logEnable) log.debug "connectionEstablished()..."
+    
+    interfaces.mqtt.subscribe(settings?.topicSub)  
+    sendEvent(name: "connection", value: "connected")    
+    runIn(overrideEnableDelay.toInteger(), updateOverrideSwitch, [data: "off"])
+}
+
+void connectionLost() {
+    if (logEnable) log.debug "connectionLost()..."
+    
+    disconnect()
+    
+    while (!interfaces.mqtt.isConnected()) {
+        log.warn "Connection lost attempting to reconnect..."
+        connect()
+        pauseExecution(retryTime * 1000)
+    }
 }
 
 def removeChildDevices() {
@@ -238,12 +254,12 @@ def removeChildDevices() {
     }
 }
 
-def updateOverrideSwitch(state) {
-    log.info "Updating vehicle presence override switch state to ${state}"
+def updateOverrideSwitch(value) {
+    log.info "Updating vehicle presence override switch state to ${value}"
     
     com.hubitat.app.DeviceWrapper cd = getChildDevice("${device.deviceNetworkId}-switch")
     if(cd != null) {
-        cd.parse([[name: "switch", value: state, descriptionText:"${cd.displayName} was turned ${state}", isStateChange: true]])
+        cd.parse([[name: "switch", value: value, descriptionText:"${cd.displayName} was turned ${value}", isStateChange: true]])
     }
 }
 
