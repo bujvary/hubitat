@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/30/2021 v1.4 - Moved check for the last time the low battery notification was sent to shade driver
  *    10/26/2021 v1.3 - Added text notification option for low battery wand condition
  *                    - Fixed update battery level request interval calculation in pollDevices()
  *    10/08/2020 v1.2 - Added logic to update device labels if the device names changed in
@@ -900,20 +901,12 @@ void repeaterPollCallback(hubitat.device.HubResponse hubResponse) {
 
 def sendBatteryLowNotification(shadeDevice) {
     if (logEnable) log.debug "sendBatteryLowNotification: shadeDevice = ${shadeDevice}"
-    
-    def now = now()
-    
-    // Send low battery wand notification no more than once every 24 hours
-    if (!atomicState?.lastNotificationSent || (now - atomicState?.lastNotificationSent) > (24 * 60 * 60 * 1000)) {
-        atomicState?.lastNotificationSent = now
-        
-		String msg = "${shadeDevice?.displayName} battery wand is low"
 	
-		def pushDevices = settings?.shadeBatteryLowDevices	
-		if (pushDevices) {
-			if (logEnable) log.debug "${shadeDevice?.displayName} - Sending push notification: ${msg}"
-			pushDevices*.deviceNotification(msg)
-		}
+	def pushDevices = settings?.shadeBatteryLowDevices	
+	if (pushDevices) {
+		String msg = "${shadeDevice?.displayName} battery wand is low"
+		if (logEnable) log.debug "${shadeDevice?.displayName} - Sending push notification: ${msg}"
+		pushDevices*.deviceNotification(msg)
 	}
 }
 
