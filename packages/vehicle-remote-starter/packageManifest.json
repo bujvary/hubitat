@@ -1,10 +1,11 @@
 {
 	"packageName": "Vehicle Remote Starter",
-	"version": "1.0",
+	"version": "1.2",
 	"minimumHEVersion": "1.2",
 	"author": "Brian Ujvary",
-	"dateReleased": "2021-10-26",
+	"dateReleased": "2021-11-08",
 	"documentationLink": "https://github.com/bujvary/hubitat",
+	"releaseNotes": "Moved check for relay switch on to turnOnRelaySwitch()",
 	"apps" : [
 		{
 			"id" : "13714203-4b27-4317-b1ca-3efd202e86d7",
@@ -23,7 +24,7 @@
 			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/vehicle-remote-starter-app.groovy",
 			"required": true,
 			"oauth": false,
-			"version": "1.1"
+			"version": "1.2"
 		}
 	],
 	"drivers" : [
