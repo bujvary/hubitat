@@ -1,7 +1,10 @@
 /*
- *  Vehcile Remote Starter App v1.0.0	(Apps Code)
+ *  Vehicle Remote Starter App (Apps Code)
  *
  *  Changelog:
+ *
+ *    1.2 (11/8/2021
+ *      - Moved check for relay switch on to turnOnRelaySwitch()
  *
  *    1.1 (10/26/2021)
  *      - Added check for relay switch on in childStart()
@@ -333,12 +336,6 @@ void childStart(childDNI) {
 	String vehicleContactStatus = settings?.vehicleContactSensor?.currentValue("contact")
     
 	if (vehicleContactStatus == "open") {  
-		if (settings?.relaySwitch?.currentValue("switch") == "on") {
-			// The switch is still on for some reason which will prevent the relay from triggering the vehicle next time so turn it off.
-			logDebug "Turning off Relay Switch (backup)..."
-			settings?.relaySwitch?.off()
-		}
-        
 		state.vehicleStatus = "starting"
 		state.relayToggleCount = numStartTogglesSetting
         
@@ -380,6 +377,12 @@ void childLock(childDNI) {
 void turnOnRelaySwitch() {
 	logDebug "${childVehicle?.displayName} - Turning on Relay Switch..."
 
+    if (settings?.relaySwitch?.currentValue("switch") == "on") {
+		// The switch is still on for some reason which will prevent the relay from triggering the vehicle next time so turn it off.
+		logDebug "Turning off Relay Switch (backup)..."
+		settings?.relaySwitch?.off()
+	}
+        
 	settings?.relaySwitch?.on()
     
 	if (state?.vehicleStatus == "starting") {
