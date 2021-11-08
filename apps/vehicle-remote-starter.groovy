@@ -1,5 +1,5 @@
 /*
- *  Vehcile Remote Starter v1.0.0	(Apps Code)
+ *  Vehcile Remote Starter (Apps Code)
  *
  *  Changelog:
  *
