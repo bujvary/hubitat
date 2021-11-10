@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    11/09/2021 v1.9 - Added check for battery voltage greater than max voltage
  *    10/30/2021 v1.8 - Added check for the last time the low battery notification was sent
  *    10/26/2021 v1.7 - Added call to sendBatteryLowNotification() if batteryStatus is 1 (low)
  *    09/24/2021 v1.6 - Fixed error in battery level calculation
@@ -65,7 +66,7 @@ metadata {
             9: "Duolite Lift and Tilt 90°"
         ]
         input name: 'pluggedIn', type: 'bool', title: '<b>Plug-in power supply?</b>', description: '<div><i>Automatically sets battery level to 100% if enabled</i></div><br>', defaultValue: false
-        input name: 'maxVoltage', type: 'number', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18', range: "1..100", required: true
+        input name: 'maxVoltage', type: 'decimal', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18.5', range: "1..50", required: true
         input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', defaultValue: true
     }
 }
@@ -189,12 +190,14 @@ public handleEvent(shadeJson) {
 
     if (shadeJson?.batteryStrength) {
         def batteryLevel = 100
-        def battVoltage = (int)(shadeJson.batteryStrength / 10)
-        
+        def battVoltage = shadeJson.batteryStrength / 10
+
         if (logEnable) log.debug "handleEvent: battVoltage = ${battVoltage}, maxVoltage = ${settings?.maxVoltage}"
         
         if (!pluggedIn) {
-            batteryLevel = (int)((battVoltage / (int)settings?.maxVoltage) * 100)
+            if (battVoltage < settings?.maxVoltage.toFloat()) {
+                batteryLevel = (int)((battVoltage / settings?.maxVoltage.toFloat()) * 100)
+            }
         }
         
         state.batteryVoltage = battVoltage
