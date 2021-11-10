@@ -1,0 +1,30 @@
+{
+	"packageName": "Vehicle Remote Starter",
+	"version": "1.0",
+	"minimumHEVersion": "1.2",
+	"author": "Brian Ujvary",
+	"dateReleased": "2021-11-10",
+	"documentationLink": "https://github.com/bujvary/hubitat",
+	"releaseNotes": "Fork of Terrel Allen / Device Mirror Plus - added presence sensor",
+	"apps" : [
+		{
+			"id" : "b8b00182-92f0-4a83-8201-96d81451e0d1",
+			"name": "Device Mirror Plus",
+			"namespace": "whodunitGorilla",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/mirror-plus.groovy",
+			"required": true,
+			"oauth": false,
+			"version": "1.0",
+			"primary": true
+		},
+		{
+			"id" : "5c21c1fc-7f14-42d6-a01e-2d1b4f9aea01",
+			"name": "Device Mirror Plus App",
+			"namespace": "whodunitGorilla",
+			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/mirror-plus-child.groovy",
+			"required": true,
+			"oauth": false,
+			"version": "1.0"
+		}
+	]
+}
