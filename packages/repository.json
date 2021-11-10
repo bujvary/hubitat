@@ -18,24 +18,35 @@
     {
       "name": "Hunter Douglas Powerview",
       "category": "Control",
+      "tags": [ "Control", "Window Coverings" ],
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/hunter-douglas-powerview/packageManifest.json",
       "description": "Control Hunter Douglas Powerview Shades"
     },
     {
+      "name": "Device Mirror Plus",
+      "category": "Control",
+      "tags": [ "Control" ],
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/mirror-plus/packageManifest.json",
+      "description": "One master [Switch], [Motion Sensor], [Contact Sensor], [Presenc Sensor], [Audio] or [Single Button] to control one or more slaves"
+    },
+    {
       "name": "Vehicle Remote Starter",
       "category": "Control",
+      "tags": [ "Vehicles & Transportation" ],
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/vehicle-remote-starter/packageManifest.json",
       "description": "Remotely start your car with a relay"
     },
     {
       "name": "ZigBee Window Shade with Battery",
       "category": "Control",
+      "tags": [ "Control", "Window Coverings" ],
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/zigbee-window-shade-with-battery/packageManifest.json",
       "description": "Control ZigBee Window Shade with Batteries from IKEA, Yookee and Yooksmart"
     },
     {
       "name": "Zooz Garage Door Opener",
       "category": "Control",
+      "tags": [ "Control", "Garage Doors" ],
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/zooz-garage-door-opener/packageManifest.json",
       "description": "Control garage doors with a Zooz ZEN16 or ZEN17 relay"
     }
