@@ -4,7 +4,8 @@
   "packages": [
     {
       "name": "BLE Presence Gateway",
-      "category": "Utility",
+			"category": "Control",
+			"tags": [ "Presence & Location" ],
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/ble-presence-gateway/packageManifest.json",
       "description": "BLE Presence Gateway via MQTT"
     },
