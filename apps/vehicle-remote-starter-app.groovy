@@ -3,7 +3,10 @@
  *
  *  Changelog:
  *
- *    1.2 (11/8/2021
+ *    1.3 (12/20/2021)
+ *      - Set state.vehicleStatus to started/stopped after successful start/stop
+ *
+ *    1.2 (11/8/2021)
  *      - Moved check for relay switch on to turnOnRelaySwitch()
  *
  *    1.1 (10/26/2021)
@@ -439,16 +442,24 @@ void vehicleContactEventHandler(evt) {
 
 void checkVehicleStatus() {
 	logDebug "${childVehicle?.displayName} - checkVehicleStatus()..."
-
+    
 	String vehicleContactStatus = settings?.vehicleContactSensor?.currentValue("contact")
     
 	if (state?.vehicleStatus == "starting" && vehicleContactStatus != "closed") {
 		sendFailedNotification("start")
 	}
+    else
+    {
+        state.vehicleStatus = "started"
+    }
     
 	if (state?.vehicleStatus == "stopping" && vehicleContactStatus != "open") {
 		sendFailedNotification("stop")
 	}
+    else
+    {
+        state.vehicleStatus = "stopped"
+    }
 }
 
 void sendFailedNotification(String failedStatus) {
