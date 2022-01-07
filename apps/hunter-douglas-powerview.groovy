@@ -15,7 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
- *    01/06/2021 v1.6 - Added tilt capability based on shade capabilities
+ *    01/06/2021 v2.0 - Added tilt capability based on shade capabilities
  *    01/06/2022 v1.5 - Allow user to complete setup without selecting shades (i.e. scenes only)
  *    10/30/2021 v1.4 - Moved check for the last time the low battery notification was sent to shade driver
  *    10/26/2021 v1.3 - Added text notification option for low battery wand condition
@@ -299,11 +299,11 @@ def addDevices() {
     if (atomicState?.rooms) {
         atomicState?.rooms?.collect { id, room ->
             if (logEnable) log.debug "checking room ${id}"
-            def dni = roomIdToDni(id)
+            def dni = roomIdToDni(id) + "-beta"
             def child = getChildDevice(dni)
             if (!child) {
                 if (room.openScene || room.closeScene) {
-                    child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room", dni, null, [label: getRoomLabel(room.name)])
+                    child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room BETA", dni, null, [label: getRoomLabel(room.name)])
                     if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
                 }
             } else {
@@ -318,10 +318,10 @@ def addDevices() {
     }
     if (atomicState?.shades) {
         atomicState?.shades?.collect { id, name ->
-            def dni = shadeIdToDni(id)
+            def dni = shadeIdToDni(id) + "-beta"
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade BETA", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             } else {
                 def childLabel = child.getLabel()
@@ -334,10 +334,10 @@ def addDevices() {
     }
     if (atomicState?.scenes) {
         atomicState?.scenes?.collect { id, name ->
-            def dni = sceneIdToDni(id)
+            def dni = sceneIdToDni(id) + "-beta"
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene BETA", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             }
              else {
@@ -351,10 +351,10 @@ def addDevices() {
     }
     if (atomicState?.repeaters) {
         atomicState?.repeaters?.collect { id, name ->
-            def dni = repeaterIdToDni(id)
+            def dni = repeaterIdToDni(id) + "-beta"
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Repeater", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Repeater BETA", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             } else {
                 def childLabel = child.getLabel()
