@@ -2,17 +2,15 @@
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
   "version": "1.12",
-  "betaVersion": "2.0.0",
   "minimumHEVersion": "0.0",
   "dateReleased": "2022-01-06",
-  "releaseNotes": "Hunter Douglas PowerView App v1.5 - Modified to allow user to complete setup without selecting shades\nHunter Douglas PowerView App/Shade v2.0.0 BETA - Added tilt capability based on shade capabilities",
+  "releaseNotes": "Hunter Douglas PowerView App v1.5 - Modified to allow user to complete setup without selecting shades",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
       "name": "Hunter Douglas PowerView",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/bujvary/hubitat/beta/apps/hunter-douglas-powerview.groovy",
       "required": true,
       "oauth": false,
       "version": "1.5"
@@ -24,7 +22,6 @@
       "name": "Hunter Douglas PowerView Repeater",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-repeater.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-repeater.groovy",
       "required": true,
       "version": "1.2"
     },
@@ -33,7 +30,6 @@
       "name": "Hunter Douglas PowerView Room",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy",
       "required": true,
       "version": "1.1"
     },
@@ -42,7 +38,6 @@
       "name": "Hunter Douglas PowerView Scene",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-scene.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-scene.groovy",
       "required": true,
       "version": "1.0"
     },
@@ -51,7 +46,6 @@
       "name": "Hunter Douglas PowerView Shade",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
       "version": "1.9"
     }
