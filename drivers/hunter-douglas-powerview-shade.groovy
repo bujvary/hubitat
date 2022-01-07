@@ -15,7 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
- *    01/06/2021 v1.10 - Added tilt capability based on shade capabilities
+ *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    11/09/2021 v1.9 - Added check for battery voltage greater than max voltage
  *    10/30/2021 v1.8 - Added check for the last time the low battery notification was sent
  *    10/26/2021 v1.7 - Added call to sendBatteryLowNotification() if batteryStatus is 1 (low)
