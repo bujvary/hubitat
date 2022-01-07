@@ -13,7 +13,7 @@
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/apps/hunter-douglas-powerview.groovy",
       "required": true,
       "oauth": false,
-      "version": "1.6"
+      "version": "2.0.0"
     }
   ],
   "drivers": [
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
-      "version": "1.10"
+      "version": "2.0.0"
     }
   ]
 }
