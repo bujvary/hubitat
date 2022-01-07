@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/06/2021 v1.10 - Added tilt capability based on shade capabilities
  *    11/09/2021 v1.9 - Added check for battery voltage greater than max voltage
  *    10/30/2021 v1.8 - Added check for the last time the low battery notification was sent
  *    10/26/2021 v1.7 - Added call to sendBatteryLowNotification() if batteryStatus is 1 (low)
@@ -47,9 +48,13 @@ metadata {
         command "jog"
         command "setBottomPosition", ["number"]
         command "setTopPosition", ["number"]
+        command "setTiltPosition", ["number"]
+        command "tiltOpen"
+        command "tiltClose"
 
         attribute "bottomPosition", "number"
         attribute "topPosition", "number"
+        attribute "tiltPosition", "number"
     }
 
     preferences {
@@ -219,26 +224,44 @@ public handleEvent(shadeJson) {
 
 def updatePosition(position, posKind) {
     def level = (int)(position * 100 / 65535)
-    def eventName = (posKind == 1) ? "bottomPosition" : "topPosition"
+    def eventName
+    
+    switch (posKind) {
+        case 1:
+            eventName = "bottomPosition"
+            break
+        case 2:
+            eventName = "topPosition"
+            break
+        case 3:
+            eventName = "tiltPosition"
+            break
+        default:
+            log.error "updatePosition() unknown posKind ${posKind}"
+            break
+    }
     
     if (logEnable) log.debug "sending event ${eventName} with value ${level}"
 
     sendEvent(name: eventName, value: level)
-    sendEvent(name: "level", value: level)
-    sendEvent(name: "position", value: level)
+    
+    if (posKind == 1 || posKind == 2) {
+        sendEvent(name: "level", value: level)
+        sendEvent(name: "position", value: level)
 
-    if (level > 0 && level < 99) {
-		sendEvent(name: "windowShade", value: "partially open", displayed:true)
-        sendEvent(name: "switch", value: "on")
-	}
-	else if (level >= 99) {
-		sendEvent(name: "windowShade", value: "open", displayed:true)
-        sendEvent(name: "switch", value: "on")
-	}
-	else {
-		sendEvent(name: "windowShade", value: "closed", displayed:true)
-        sendEvent(name: "switch", value: "off")
-	}
+        if (level > 0 && level < 99) {
+		    sendEvent(name: "windowShade", value: "partially open", displayed:true)
+            sendEvent(name: "switch", value: "on")
+	    }
+	    else if (level >= 99) {
+		    sendEvent(name: "windowShade", value: "open", displayed:true)
+            sendEvent(name: "switch", value: "on")
+	    }
+	    else {
+		    sendEvent(name: "windowShade", value: "closed", displayed:true)
+            sendEvent(name: "switch", value: "off")
+	    }
+    }
 }
 
 // parse events into attributes
@@ -246,40 +269,56 @@ def parse(String description) {}
 
 // handle commands
 def open() {
-    if (logEnable) log.debug "Executing 'open'"
+    if (logEnable) log.debug "open()"
     
     def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
 
     switch (shadeCapabilities) {
         case 0:    // Bottom Up
+        case 1:    // Bottom Up Tilt 90
+        case 2:    // Bottom Up Tilt 180
             parent.setPosition(device, [bottomPosition: 100])
             break
-        case 3:    // Vertically oriented
+        case 3:    // Vertical
+        case 4:    // Vertical Tilt 180
             parent.setPosition(device, [bottomPosition: 100])
-            break        
+            break
+        case 5:    // Tilt Only
+            log.info "open() shade supports tilt only"
+            break
         case 6:    // Top Down
             parent.setPosition(device, [topPosition: 0])
             break
         case 7:    // Top Down Bottom Up
             parent.setPosition(device, [bottomPosition: 100, topPosition: 0])
             break
+        case 8:    // Duolite Lift
+        case 9:    // Duolite Lift and Tilt 90
+            parent.setPosition(device, [bottomPosition: 100])
+            break
         default:
-            log.debug "open: case default"
+            log.error "open() unknown shade capability ${shadeCapabilities}"
             break
     }
 }
 
 def close() {
-    if (logEnable) log.debug "Executing 'close'"
+    if (logEnable) log.debug "close()"
     
     def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
 
     switch (shadeCapabilities) {
         case 0:    // Botton Up
+        case 1:    // Bottom Up Tilt 90
+        case 2:    // Bottom Up Tilt 180
             parent.setPosition(device, [bottomPosition: 0])
             break
-        case 3:    // Vertically oriented
+        case 3:    // Vertical
+        case 4:    // Vertical Tilt 180
             parent.setPosition(device, [bottomPosition: 0])
+            break
+        case 5:    // Tilt Only 180
+            log.info "close() shade supports tilt only"
             break
         case 6:    // Top Down
             parent.setPosition(device, [topPosition: 100])
@@ -287,7 +326,96 @@ def close() {
         case 7:    // Top Down Bottom Up
             parent.setPosition(device, [bottomPosition: 0, topPosition: 0])
             break
+        case 8:    // Duolite Lift
+        case 9:    // Duolite Lift and Tilt 90
+            parent.setPosition(device, [bottomPosition: 0])
+            break
         default:
+            log.error "close() unknown shade capability ${shadeCapabilities}"
+            break
+    }
+}
+
+def tiltOpen() {
+    if (logEnable) log.debug "tiltOpen()"
+    
+    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+
+    switch (shadeCapabilities) {
+        case 0:    // Bottom Up
+            log.info "tilt_open() shade does not support tilt"
+            break
+        case 1:    // Bottom Up Tilt 90
+            parent.setPosition(device, [tiltPosition: 50])
+            break
+        case 2:    // Bottom Up Tilt 180
+            parent.setPosition(device, [tiltPosition: 100])
+            break
+        case 3:    // Vertical
+            log.info "tilt_open() shade does not support tilt"
+            break
+        case 4:    // Vertical Tilt 180
+            parent.setPosition(device, [tiltPosition: 100])
+            break
+        case 5:    // Tilt Only 180
+            parent.setPosition(device, [tiltPosition: 100])
+            break
+        case 6:    // Top Down
+            log.info "tilt_open() shade does not support tilt"
+            break
+        case 7:    // Top Down Bottom Up
+            log.info "tilt_open() shade does not support tilt"
+            break
+        case 8:    // Duolite Lift
+            log.info "tilt_open() shade does not support tilt"
+            break
+        case 9:    // Duolite Lift and Tilt 90
+            parent.setPosition(device, [tiltPosition: 50])
+            break
+        default:
+            log.error "tilt_open() unknown shade capability ${shadeCapabilities}"
+            break
+    }
+}
+
+def tiltClose() {
+    if (logEnable) log.debug "tiltClose()"
+    
+    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+
+    switch (shadeCapabilities) {
+        case 0:    // Bottom Up
+            log.info "tilt_close() shade does not support tilt"
+            break
+        case 1:    // Bottom Up Tilt 90
+            parent.setPosition(device, [tiltPosition: 0])
+            break
+        case 2:    // Bottom Up Tilt 180
+            parent.setPosition(device, [tiltPosition: 0])
+            break
+        case 3:    // Vertical
+            log.info "tilt_close() shade does not support tilt"
+            break
+        case 4:    // Vertical Tilt 180
+            parent.setPosition(device, [tiltPosition: 0])
+            break
+        case 5:    // Tilt Only 180
+            parent.setPosition(device, [tiltPosition: 0])
+            break
+        case 6:    // Top Down
+            log.info "tilt_close() shade does not support tilt"
+            break
+        case 7:    // Top Down Bottom Up
+            log.info "tilt_close() shade does not support tilt"
+            break
+        case 8:    // Duolite Lift
+            log.info "tilt_close() shade does not support tilt"
+            break
+        case 9:    // Duolite Lift and Tilt 90
+            parent.setPosition(device, [tiltPosition: 0])
+            break
+        default:
+            log.error "tilt_close() unknown shade capability ${shadeCapabilities}"
             break
     }
 }
@@ -314,6 +442,11 @@ def setTopPosition(topPosition) {
 
 def setPosition(position) {
 	setLevel(position)
+}
+
+def setTiltPosition(tiltPosition) {
+    tiltPosition = Math.min(Math.max(tiltPosition.intValue(), 0), 100)
+    parent.setPosition(device, [tiltPosition: tiltPosition])
 }
 
 def setLevel(level, duration = null) {
