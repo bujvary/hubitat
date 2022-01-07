@@ -34,7 +34,7 @@
  *
  */
 metadata {
-    definition(name: "Hunter Douglas PowerView Shade", namespace: "hdpowerview", author: "Chris Lang", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy") {
+    definition(name: "Hunter Douglas PowerView Shade BETA", namespace: "hdpowerview", author: "Chris Lang", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy") {
         capability "Initialize"
         capability "Actuator"
         capability "Battery"
