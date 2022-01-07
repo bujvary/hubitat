@@ -36,7 +36,7 @@ import groovy.transform.Field
 @Field static String htmlTab = "&nbsp;&nbsp;&nbsp;&nbsp;"
 
 definition(
-    name: "Hunter Douglas PowerView",
+    name: "Hunter Douglas PowerView BETA",
     namespace: "hdpowerview",
     author: "Chris Lang",
     description: "Provides control of Hunter Douglas shades, scenes and repeaters via the PowerView hub.",
