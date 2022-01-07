@@ -20,7 +20,7 @@
  *
  */
 metadata {
-    definition(name: "Hunter Douglas PowerView Room", namespace: "hdpowerview", author: "Chris Lang", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy") {
+    definition(name: "Hunter Douglas PowerView Room BETA", namespace: "hdpowerview", author: "Chris Lang", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy") {
         capability "Actuator"
         capability "Momentary"
         capability "Switch"
