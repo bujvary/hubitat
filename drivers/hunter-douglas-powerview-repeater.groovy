@@ -21,7 +21,7 @@
  *
  */
 metadata {
-    definition(name: "Hunter Douglas PowerView Repeater", namespace: "hdpowerview", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-repeater.groovy") {
+    definition(name: "Hunter Douglas PowerView Repeater BETA", namespace: "hdpowerview", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-repeater.groovy") {
         capability "Actuator"
         capability "Refresh"
         capability "Switch Level"
