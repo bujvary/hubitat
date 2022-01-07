@@ -1,5 +1,5 @@
 {
-  "packageName": "Hunter Douglas Powerview",
+  "packageName": "Hunter Douglas Powerview BETA",
   "author": "Brian Ujvary",
   "version": "2.0.0",
   "minimumHEVersion": "0.0",
@@ -18,18 +18,18 @@
   ],
   "drivers": [
     {
-      "id": "5cab32b8-f2fa-42de-b4b9-155ec527453c",
+      "id": "69fd64d6-2e04-4164-9736-e0a486191582",
       "name": "Hunter Douglas PowerView Repeater",
       "namespace": "hdpowerview",
-      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-repeater.groovy",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-repeater.groovy",
       "required": true,
       "version": "1.2"
     },
     {
-      "id": "0c5dc3ed-8685-4fee-9418-26013e1bf734",
+      "id": "a381cb37-5cc2-4783-95a7-910fbe2a6e9d",
       "name": "Hunter Douglas PowerView Room",
       "namespace": "hdpowerview",
-      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-room.groovy",
       "required": true,
       "version": "1.1"
     },
@@ -37,12 +37,12 @@
       "id": "0ba392fa-809d-4ae4-b960-df5fbfbcd6c7",
       "name": "Hunter Douglas PowerView Scene",
       "namespace": "hdpowerview",
-      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-scene.groovy",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-scene.groovy",
       "required": true,
       "version": "1.0"
     },
     {
-      "id": "b2a713a0-5008-4681-8edd-e6093d79b5fb",
+      "id": "ce71207e-c840-4eee-97a7-6e819754bbd4",
       "name": "Hunter Douglas PowerView Shade",
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-shade.groovy",
