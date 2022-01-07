@@ -15,7 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
- *    01/06/2021 v2.0 - Added tilt capability based on shade capabilities
+ *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    01/06/2022 v1.5 - Allow user to complete setup without selecting shades (i.e. scenes only)
  *    10/30/2021 v1.4 - Moved check for the last time the low battery notification was sent to shade driver
  *    10/26/2021 v1.3 - Added text notification option for low battery wand condition
