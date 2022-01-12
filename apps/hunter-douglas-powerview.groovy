@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/12/2022 v2.0.1 - Fixed issues with tilt capability
+ *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    01/06/2022 v1.5 - Allow user to complete setup without selecting shades (i.e. scenes only)
  *    10/30/2021 v1.4 - Moved check for the last time the low battery notification was sent to shade driver
  *    10/26/2021 v1.3 - Added text notification option for low battery wand condition
@@ -35,7 +37,7 @@ import groovy.transform.Field
 @Field static String htmlTab = "&nbsp;&nbsp;&nbsp;&nbsp;"
 
 definition(
-    name: "Hunter Douglas PowerView",
+    name: "Hunter Douglas PowerView BETA",
     namespace: "hdpowerview",
     author: "Chris Lang",
     description: "Provides control of Hunter Douglas shades, scenes and repeaters via the PowerView hub.",
@@ -302,7 +304,7 @@ def addDevices() {
             def child = getChildDevice(dni)
             if (!child) {
                 if (room.openScene || room.closeScene) {
-                    child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room", dni, null, [label: getRoomLabel(room.name)])
+                    child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room BETA", dni, null, [label: getRoomLabel(room.name)])
                     if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
                 }
             } else {
@@ -320,7 +322,7 @@ def addDevices() {
             def dni = shadeIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade BETA", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             } else {
                 def childLabel = child.getLabel()
@@ -336,7 +338,7 @@ def addDevices() {
             def dni = sceneIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene BETA", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             }
              else {
@@ -353,7 +355,7 @@ def addDevices() {
             def dni = repeaterIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Repeater", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Repeater BETA", dni, null, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             } else {
                 def childLabel = child.getLabel()
@@ -454,15 +456,15 @@ def getRoomLabel(roomName) {
 }
 
 def getRoomDniPrefix() {
-    return "PowerView-Room-"
+    return "PowerView-Room-Beta"
 }
 
 def getSceneDniPrefix() {
-    return "PowerView-Scene-"
+    return "PowerView-Scene-Beta"
 }
 
 def getShadeDniPrefix() {
-    return "PowerView-Shade-"
+    return "PowerView-Shade-Beta"
 }
 def getRepeaterDniPrefix() {
     return "PowerView-Repeater-"
@@ -771,6 +773,13 @@ def setPosition(shadeDevice, positions) {
         shadePositions["position${positionNumber}"] = (int)(positions.position * 65535 / 100)
     }
 
+    if (positions?.containsKey("tiltPosition")) {
+        def childDevice = getShadeDevice(dniToShadeId(shadeDevice.deviceNetworkId))
+        def max = childDevice.supportsTilt180() ? 65535 : 32767
+        shadePositions["posKind${positionNumber}"] = 3
+        shadePositions["position${positionNumber}"] = (int)(positions.tiltPosition * max / 100)
+    }
+    
     moveShade(shadeDevice, [positions: shadePositions])
 }
 
