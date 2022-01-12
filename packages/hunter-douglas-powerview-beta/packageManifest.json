@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview BETA",
   "author": "Brian Ujvary",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2022-01-06",
-  "releaseNotes": "Hunter Douglas PowerView v2.0.0 BETA - Added tilt capability based on shade capabilities",
+  "dateReleased": "2022-01-12",
+  "releaseNotes": "Hunter Douglas PowerView v2.0.1 BETA - Fixed issues with tilt capability",
   "apps": [
     {
       "id": "18d2d657-03a8-4ed5-92ae-8522c6cef2e9",
@@ -13,7 +13,7 @@
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/apps/hunter-douglas-powerview.groovy",
       "required": true,
       "oauth": false,
-      "version": "2.0.0"
+      "version": "2.0.1"
     }
   ],
   "drivers": [
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/beta/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
-      "version": "2.0.0"
+      "version": "2.0.1"
     }
   ]
 }
