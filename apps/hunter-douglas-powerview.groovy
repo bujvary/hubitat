@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/12/2022 v2.0.1 - Fixed issues with tilt capability
  *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    01/06/2022 v1.5 - Allow user to complete setup without selecting shades (i.e. scenes only)
  *    10/30/2021 v1.4 - Moved check for the last time the low battery notification was sent to shade driver
@@ -299,7 +300,7 @@ def addDevices() {
     if (atomicState?.rooms) {
         atomicState?.rooms?.collect { id, room ->
             if (logEnable) log.debug "checking room ${id}"
-            def dni = roomIdToDni(id) + "-beta"
+            def dni = roomIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
                 if (room.openScene || room.closeScene) {
@@ -318,7 +319,7 @@ def addDevices() {
     }
     if (atomicState?.shades) {
         atomicState?.shades?.collect { id, name ->
-            def dni = shadeIdToDni(id) + "-beta"
+            def dni = shadeIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
                 child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade BETA", dni, null, [label: name])
@@ -334,7 +335,7 @@ def addDevices() {
     }
     if (atomicState?.scenes) {
         atomicState?.scenes?.collect { id, name ->
-            def dni = sceneIdToDni(id) + "-beta"
+            def dni = sceneIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
                 child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene BETA", dni, null, [label: name])
@@ -351,7 +352,7 @@ def addDevices() {
     }
     if (atomicState?.repeaters) {
         atomicState?.repeaters?.collect { id, name ->
-            def dni = repeaterIdToDni(id) + "-beta"
+            def dni = repeaterIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
                 child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Repeater BETA", dni, null, [label: name])
@@ -455,15 +456,15 @@ def getRoomLabel(roomName) {
 }
 
 def getRoomDniPrefix() {
-    return "PowerView-Room-"
+    return "PowerView-Room-Beta"
 }
 
 def getSceneDniPrefix() {
-    return "PowerView-Scene-"
+    return "PowerView-Scene-Beta"
 }
 
 def getShadeDniPrefix() {
-    return "PowerView-Shade-"
+    return "PowerView-Shade-Beta"
 }
 def getRepeaterDniPrefix() {
     return "PowerView-Repeater-"
@@ -758,23 +759,25 @@ def setPosition(shadeDevice, positions) {
 
     if (positions?.containsKey("bottomPosition")) {
         shadePositions["posKind${positionNumber}"] = 1
-        shadePositions["position${positionNumber}"] = (int)(positions.bottomPosition * 65535 / 100) + 1
+        shadePositions["position${positionNumber}"] = (int)(positions.bottomPosition * 65535 / 100)
         positionNumber += 1
     }
 
     if (positions?.containsKey("topPosition")) {
         shadePositions["posKind${positionNumber}"] = 2
-        shadePositions["position${positionNumber}"] = (int)(positions.topPosition * 65535 / 100) + 1
+        shadePositions["position${positionNumber}"] = (int)(positions.topPosition * 65535 / 100)
     }
 
     if (positions?.containsKey("position")) {
         shadePositions["posKind${positionNumber}"] = 1
-        shadePositions["position${positionNumber}"] = (int)(positions.position * 65535 / 100) + 1
+        shadePositions["position${positionNumber}"] = (int)(positions.position * 65535 / 100)
     }
 
     if (positions?.containsKey("tiltPosition")) {
+        def childDevice = getShadeDevice(dniToShadeId(shadeDevice.deviceNetworkId))
+        def max = childDevice.supportsTilt180() ? 65535 : 32767
         shadePositions["posKind${positionNumber}"] = 3
-        shadePositions["position${positionNumber}"] = (int)(positions.tiltPosition * 65535 / 100) + 1
+        shadePositions["position${positionNumber}"] = (int)(positions.tiltPosition * max / 100)
     }
     
     moveShade(shadeDevice, [positions: shadePositions])
