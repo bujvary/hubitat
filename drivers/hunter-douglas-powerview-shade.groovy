@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/12/2022 v2.0.1 - Fixed issues with tilt capability
  *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    11/09/2021 v1.9 - Added check for battery voltage greater than max voltage
  *    10/30/2021 v1.8 - Added check for the last time the low battery notification was sent
@@ -223,8 +224,16 @@ public handleEvent(shadeJson) {
 }
 
 def updatePosition(position, posKind) {
-    def level = (int)(position * 100 / 65535)
+    def level
     def eventName
+    
+    if (posKind == 3) {
+        max = supportsTilt180() ? 65535 : 32767
+        level = (int)(position * 100 / max)
+    }
+    else {
+        level = (int)(position * 100 / 65535)
+    }
     
     switch (posKind) {
         case 1:
@@ -283,14 +292,14 @@ def open() {
         case 4:    // Vertical Tilt 180
             parent.setPosition(device, [bottomPosition: 100])
             break
-        case 5:    // Tilt Only
+        case 5:    // Tilt Only 180
             log.info "open() shade supports tilt only"
             break
         case 6:    // Top Down
             parent.setPosition(device, [topPosition: 0])
             break
         case 7:    // Top Down Bottom Up
-            parent.setPosition(device, [bottomPosition: 100, topPosition: 0])
+            parent.setPosition(device, [bottomPosition: 100, topPosition: 100])
             break
         case 8:    // Duolite Lift
         case 9:    // Duolite Lift and Tilt 90
@@ -346,7 +355,7 @@ def tiltOpen() {
             log.info "tilt_open() shade does not support tilt"
             break
         case 1:    // Bottom Up Tilt 90
-            parent.setPosition(device, [tiltPosition: 50])
+            parent.setPosition(device, [tiltPosition: 100])
             break
         case 2:    // Bottom Up Tilt 180
             parent.setPosition(device, [tiltPosition: 100])
@@ -370,7 +379,7 @@ def tiltOpen() {
             log.info "tilt_open() shade does not support tilt"
             break
         case 9:    // Duolite Lift and Tilt 90
-            parent.setPosition(device, [tiltPosition: 50])
+            parent.setPosition(device, [tiltPosition: 100])
             break
         default:
             log.error "tilt_open() unknown shade capability ${shadeCapabilities}"
@@ -452,6 +461,30 @@ def setTiltPosition(tiltPosition) {
 def setLevel(level, duration = null) {
     position = Math.min(Math.max(level.intValue(), 0), 100)
     parent.setPosition(device, [position: level])
+}
+
+def supportsTilt180() {
+    if (logEnable) log.debug "supportsTilt180()"
+    
+    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+    def rc = false
+    
+    switch (shadeCapabilities) {
+        case 1:    // Bottom Up Tilt 90
+        case 9:    // Duolite Lift and Tilt 90
+            rc = false
+            break
+        case 2:    // Bottom Up Tilt 180
+        case 4:    // Vertical Tilt 180
+        case 5:    // Tilt Only 180
+            rc = true
+            break
+        default:
+            log.error "shade does not support tilt capability (shade capability = ${shadeCapabilities})"
+            break
+    }
+    
+    return rc
 }
 
 def logsOff() {
