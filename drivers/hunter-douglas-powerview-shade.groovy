@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/17/2022 v2.0.3 - Refactored code to better handle top-down/bottom windowShade event
+ *                      - Initialized setting railForLevelState if it was null
  *    01/13/2022 v2.0.2 - Fixed top-down/bottom up shade state settings for level, position and open/close
  *                      - Added preference for top-down/bottom up shade rail selection for level setting
  *                      - Refactored open(), close(), tilt_open(), tilt_close() and setTiltPosition()
@@ -74,13 +76,14 @@ metadata {
             8: "Duolite Lift",
             9: "Duolite Lift and Tilt 90°"
         ]
-        def shadeCapabilities = (capabilityOverride == null) ? state?.capabilities : capabilityOverride.toInteger()
-        if (shadeCapabilities == 7 ) {
+        
+        if (getShadeCapabilities() == 7) {
             input name: 'railForLevelState', type: 'enum', title: '<b>Top Down/Bottom Up Rail for Level State</b>', description: '<div><i>Select rail that will determine the value of the level state</i></div><br>', displayDuringSetup: false, defaultValue: '0', required: false, options: [
                 0: "Bottom Rail",
                 1: "Top Rail",
             ]
         }
+        
         input name: 'pluggedIn', type: 'bool', title: '<b>Plug-in power supply?</b>', description: '<div><i>Automatically sets battery level to 100% if enabled</i></div><br>', defaultValue: false
         input name: 'maxVoltage', type: 'decimal', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18.5', range: "1..50", required: true
         input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', defaultValue: true
@@ -187,6 +190,8 @@ public handleEvent(shadeJson) {
     if (logEnable) log.debug "handleEvent: shadeJson = ${shadeJson}"
     def now = now()
     
+    if(settings?.railForLevelState==null) settings?.railForLevelState=0
+    
     if (shadeJson?.positions) {
         def positions = shadeJson.positions
         if (positions.posKind1) {
@@ -237,16 +242,16 @@ def updatePosition(position, posKind) {
     def sendLevelEvents = true
     def eventName
     def level
-    def shadeCapabilities = (capabilityOverride == null) ? state?.capabilities : capabilityOverride.toInteger()
     
-    if (shadeCapabilities == 7) {
-        log.debug "posKind = ${posKind}, railForLevelState = ${settings?.railForLevelState}"
+    if (getShadeCapabilities() == 7) {
+        if (logEnable) log.debug "posKind = ${posKind}, railForLevelState = ${settings?.railForLevelState}"
+        
         if (posKind == 1 && settings?.railForLevelState.toInteger() == 0) { // bottom rail
-            log.debug "Setting level to bottom rail position"
+            if (logEnable) log.debug "Setting level to bottom rail position"
             level = Math.round(position * 100 / 65535)
         }
         else if (posKind == 2 && settings?.railForLevelState.toInteger() == 1) { // top rail
-            log.debug "Setting level to top rail position"
+            if (logEnable) log.debug "Setting level to top rail position"
             level = Math.round(position * 100 / 65535)
         }
         else {
@@ -286,24 +291,25 @@ def updatePosition(position, posKind) {
         sendEvent(name: "position", value: level)
     }
     
-    if ((posKind == 1 || posKind == 2)) {
-        if (level > 0 && level < 99) {
-            sendEvent(name: "windowShade", value: "partially open", displayed:true)
-            sendEvent(name: "switch", value: "on")
-	    }
-	    else if (level >= 99) {
-            sendEvent(name: "windowShade", value: "open", displayed:true)
-            sendEvent(name: "switch", value: "on")
-	    }
-	    else {
-            if (shadeCapabilities == 7 && (device.currentValue('bottomPosition') != 0 && device.currentValue('topPosition') != 0)) {
-                //top-down/bottom-up shade is only closed if both rails are closed
-                return   
-            }
-            
-            sendEvent(name: "windowShade", value: "closed", displayed:true)
-            sendEvent(name: "switch", value: "off")
-	    }
+    runIn(1, updateWindowShadeState)
+}
+
+def updateWindowShadeState() {
+    if (logEnable) log.debug "updateWindowShadeState()"
+    
+    level = device.currentValue('level', true)
+
+    if (isOpen(level)) {
+        sendEvent(name: "windowShade", value: "open", displayed:true)
+        sendEvent(name: "switch", value: "on")
+    }
+    else if (isClosed(level)) {
+        sendEvent(name: "windowShade", value: "closed", displayed:true)
+        sendEvent(name: "switch", value: "off")  
+    }
+    else {
+        sendEvent(name: "windowShade", value: "partially open", displayed:true)
+        sendEvent(name: "switch", value: "on")
     }
 }
 
@@ -314,7 +320,7 @@ def parse(String description) {}
 def open() {
     if (logEnable) log.debug "open()"
     
-    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+    def shadeCapabilities = getShadeCapabilities()
 
     switch (shadeCapabilities) {
         case 0:    // Bottom Up
@@ -344,7 +350,7 @@ def open() {
 def close() {
     if (logEnable) log.debug "close()"
     
-    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
+    def shadeCapabilities = getShadeCapabilities()
 
     switch (shadeCapabilities) {
         case 0:    // Botton Up
@@ -426,32 +432,32 @@ def setLevel(level, duration = null) {
 def supportsTilt180() {
     if (logEnable) log.debug "supportsTilt180()"
     
-    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
-    def rc = false
+    def shadeCapabilities = getShadeCapabilities()
+    def result = false
     
     switch (shadeCapabilities) {
         case 1:    // Bottom Up Tilt 90
         case 9:    // Duolite Lift and Tilt 90
-            rc = false
+            result = false
             break
         case 2:    // Bottom Up Tilt 180
         case 4:    // Vertical Tilt 180
         case 5:    // Tilt Only 180
-            rc = true
+            result = true
             break
         default:
             log.error "shade does not support tilt capability (shade capability = ${shadeCapabilities})"
             break
     }
     
-    return rc
+    return result
 }
 
 def supportsTilt() {
     if (logEnable) log.debug "supportsTilt()"
     
-    def shadeCapabilities = (capabilityOverride == null) ? state.capabilities : capabilityOverride.toInteger()
-    def rc = false
+    def shadeCapabilities = getShadeCapabilities()
+    def result = false
     
     switch (shadeCapabilities) {
         case 1:    // Bottom Up Tilt 90
@@ -459,14 +465,54 @@ def supportsTilt() {
         case 4:    // Vertical Tilt 180
         case 5:    // Tilt Only 180
         case 9:    // Duolite Lift and Tilt 90
-            rc = true
+            result = true
             break
         default:
             log.error "shade does not support tilt capability (shade capability = ${shadeCapabilities})"
             break
     }
     
-    return rc
+    return result
+}
+
+def getShadeCapabilities() {
+    return (capabilityOverride == null) ? state?.capabilities : capabilityOverride.toInteger()    
+}
+
+def isClosed(level) {
+    if (logEnable) log.debug "isClosed()"
+    def result
+
+    if (getShadeCapabilities() == 7) {
+        log.debug "Checking TB/BU shade closed state"
+        result = (device.currentValue('bottomPosition', true) == 0 && device.currentValue('topPosition', true) == 0) ? true : false
+    }
+    else {
+        log.debug "Checking shade closed state"
+        result = (level == 0) ? true : false
+    }
+    
+    log.debug "isClosed() = ${result}"
+    
+    return result
+}
+
+def isOpen(level) {
+    if (logEnable) log.debug "isOpen()"
+    def result
+
+    if (getShadeCapabilities() == 7) {
+        log.debug "Checking TB/BU shade open state"
+        result = (device.currentValue('bottomPosition', true) == 100 && device.currentValue('topPosition', true) == 100) ? true : false
+    }
+    else {
+        log.debug "Checking shade closed state"
+        result = (level == 100) ? true : false
+    }
+    
+    log.debug "isOpen() = ${result}"
+    
+    return result
 }
 
 def logsOff() {
