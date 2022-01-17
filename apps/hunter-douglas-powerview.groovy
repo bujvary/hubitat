@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/17/2022 v2.0.2 - Fixed issue with beta naming convention
  *    01/12/2022 v2.0.1 - Fixed issues with tilt capability
  *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    01/06/2022 v1.5 - Allow user to complete setup without selecting shades (i.e. scenes only)
@@ -456,18 +457,18 @@ def getRoomLabel(roomName) {
 }
 
 def getRoomDniPrefix() {
-    return "PowerView-Room-Beta"
+    return "PowerView-Room-Beta-"
 }
 
 def getSceneDniPrefix() {
-    return "PowerView-Scene-Beta"
+    return "PowerView-Scene-Beta-"
 }
 
 def getShadeDniPrefix() {
-    return "PowerView-Shade-Beta"
+    return "PowerView-Shade-Beta-"
 }
 def getRepeaterDniPrefix() {
-    return "PowerView-Repeater-"
+    return "PowerView-Repeater-Beta-"
 }
 
 def roomIdToDni(id) {
