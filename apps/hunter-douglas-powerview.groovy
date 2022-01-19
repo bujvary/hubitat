@@ -15,6 +15,9 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/19/2022 v2.1.0 - General release with shade tilt capability
+ *    01/12/2022 v2.0.1 - Fixed issues with tilt capability
+ *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
  *    01/06/2022 v1.5 - Allow user to complete setup without selecting shades (i.e. scenes only)
  *    10/30/2021 v1.4 - Moved check for the last time the low battery notification was sent to shade driver
  *    10/26/2021 v1.3 - Added text notification option for low battery wand condition
@@ -771,6 +774,13 @@ def setPosition(shadeDevice, positions) {
         shadePositions["position${positionNumber}"] = (int)(positions.position * 65535 / 100)
     }
 
+    if (positions?.containsKey("tiltPosition")) {
+        def childDevice = getShadeDevice(dniToShadeId(shadeDevice.deviceNetworkId))
+        def max = childDevice.supportsTilt180() ? 65535 : 32767
+        shadePositions["posKind${positionNumber}"] = 3
+        shadePositions["position${positionNumber}"] = (int)(positions.tiltPosition * max / 100)
+    }
+    
     moveShade(shadeDevice, [positions: shadePositions])
 }
 
