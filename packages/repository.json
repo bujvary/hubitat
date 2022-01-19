@@ -23,13 +23,6 @@
       "description": "Control Hunter Douglas Powerview Shades"
     },
     {
-      "name": "Hunter Douglas Powerview BETA",
-      "category": "Control",
-      "tags": [ "Control", "Window Coverings" ],
-      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/hunter-douglas-powerview-beta/packageManifest.json",
-      "description": "Control Hunter Douglas Powerview Shades"
-    },
-    {
       "name": "Device Mirror Plus",
       "category": "Control",
       "tags": [ "Control" ],
