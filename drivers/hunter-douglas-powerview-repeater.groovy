@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/19/2022 v2.1.0 - Version number update only
  *    10/08/2020 v1.2 - Modified to check for null value for brightness
  *    07/01/2020 v1.1 - Added firmware version to the Data section of Device Details
  *    05/10/2020 v1.0 - Initial release
