@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/20/2022 v2.2.0 - Added stopShade()
+ *                      - Removed unnecessary calls to unsubscribe()
  *    01/19/2022 v2.1.0 - General release with shade tilt capability
  *    01/12/2022 v2.0.1 - Fixed issues with tilt capability
  *    01/06/2021 v2.0.0 - Added tilt capability based on shade capabilities
@@ -275,16 +277,14 @@ def updated() {
 
 def uninstalled() {
     removeDevices()
-    unsubscribe()
     unschedule()
 }
 
 def initialize() {
     atomicState?.installed = true
-    unsubscribe()
     addDevices()
-
     unschedule()
+    
     pollDevices(true)
     runEvery5Minutes("pollDevices")
     
@@ -750,6 +750,11 @@ def calibrateShade(shadeDevice) {
 def jogShade(shadeDevice) {
     if (logEnable) log.debug "jogShade: shadeDevice = ${shadeDevice}"
     moveShade(shadeDevice, [motion: "jog"])
+}
+
+def stopShade(shadeDevice) {
+    if (logEnable) log.debug "stopShade: shadeDevice = ${shadeDevice}"
+    moveShade(shadeDevice, [motion: "stop"])
 }
 
 def setPosition(shadeDevice, positions) {
