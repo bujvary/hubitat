@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/20/2022 v2.2.0 - Version number update only
  *    01/19/2022 v2.1.0 - Version number update only
  *    05/10/2020 v1.0 - Initial release
  *
