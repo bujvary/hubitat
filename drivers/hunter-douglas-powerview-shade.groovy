@@ -15,6 +15,11 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/20/2022 v2.2.0 - Changed topPosition to 0 in open() and isOpen() for TD/BU shades
+ *                      - Modified setLevel() to set topPosition to 0 and bottomPosition to user requested position for TD/BU shades
+ *                      - Added startPositionChange() and stopPositionChange() as well as "stop" command and stop()
+ *                      - Added presetPosition command and updated presetPosition()
+ *                      - Cleaned up debug logging
  *    01/19/2022 v2.1.0 - General release with shade tilt capability and better handling of TD/BU shades
  *    01/17/2022 v2.0.3 - Refactored code to better handle top-down/bottom windowShade event
  *                      - Initialized setting railForLevelState if it was null
@@ -53,6 +58,8 @@ metadata {
 
         command "calibrate"
         command "jog"
+        command "stop"
+        command "presetPosition"
         command "setBottomPosition", ["number"]
         command "setTopPosition", ["number"]
         command "setTiltPosition", ["number"]
@@ -84,10 +91,11 @@ metadata {
                 1: "Top Rail",
             ]
         }
-        
-        input name: 'pluggedIn', type: 'bool', title: '<b>Plug-in power supply?</b>', description: '<div><i>Automatically sets battery level to 100% if enabled</i></div><br>', defaultValue: false
-        input name: 'maxVoltage', type: 'decimal', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', defaultValue: '18.5', range: "1..50", required: true
-        input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', defaultValue: true
+
+        input name: 'preset', type: 'number', title: '<b>Preset Position</b>', description: '<div><i>Set the window shade preset position (defaults to 50)</i></div><br>', displayDuringSetup: false, defaultValue: 50, range: "0..100"
+        input name: 'pluggedIn', type: 'bool', title: '<b>Plug-in power supply?</b>', description: '<div><i>Automatically sets battery level to 100% if enabled</i></div><br>', displayDuringSetup: false, defaultValue: false
+        input name: 'maxVoltage', type: 'decimal', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', displayDuringSetup: false, defaultValue: '18.5', range: "1..50", required: true
+        input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', displayDuringSetup: false, defaultValue: true
     }
 }
 
@@ -279,8 +287,7 @@ def updatePosition(position, posKind) {
             eventName = "tiltPosition"
             break
         default:
-            log.error "updatePosition() unknown posKind ${posKind}"
-            break
+            throw new Exception("Uuknown posKind  \"${posKind}\"")
     }
     
     if (logEnable) log.debug "sending event ${eventName} with value ${level}"
@@ -340,11 +347,10 @@ def open() {
             parent.setPosition(device, [topPosition: 0])
             break
         case 7:    // Top Down Bottom Up
-            parent.setPosition(device, [bottomPosition: 100, topPosition: 100])
+            parent.setPosition(device, [bottomPosition: 100, topPosition: 0])
             break
         default:
-            log.error "open() unknown shade capability ${shadeCapabilities}"
-            break
+            throw new Exception("Unknown shade capability \"${shadeCapabilities}\"")
     }
 }
 
@@ -373,8 +379,7 @@ def close() {
             parent.setPosition(device, [bottomPosition: 0, topPosition: 0])
             break
         default:
-            log.error "close() unknown shade capability ${shadeCapabilities}"
-            break
+            throw new Exception("Unknown shade capability \"${shadeCapabilities}\"")
     }
 }
 
@@ -394,7 +399,9 @@ def tiltClose() {
     }
 }
 
-def presetPosition() {}
+def presetPosition() {
+	setLevel(settings?.preset ?: 50)
+}
 
 def calibrate() {
     parent.calibrateShade(device)
@@ -402,6 +409,10 @@ def calibrate() {
 
 def jog() {
     parent.jogShade(device)
+}
+
+def stop() {
+    parent.stopShade(device)
 }
 
 def setBottomPosition(bottomPosition) {
@@ -425,9 +436,41 @@ def setTiltPosition(tiltPosition) {
     }
 }
 
-def setLevel(level, duration = null) {
-    position = Math.min(Math.max(level.intValue(), 0), 100)
-    parent.setPosition(device, [position: level])
+def setLevel(position, duration = null) {
+    def positions = []
+    
+    position = Math.min(Math.max(position.intValue(), 0), 100)
+
+    if (getShadeCapabilities() == 7 && device.currentValue('topPosition', true) != 0) {
+        // The top rail is not closed but the bottom was told to move.  In nearly all
+        // cases, this should mean the top closes.
+        positions = [topPosition: 0, bottomPosition: position]
+    } else {
+        positions = [position: position]
+    }
+    
+    parent.setPosition(device, positions)
+}
+
+def startPositionChange(direction) {
+    if (logEnable) log.debug "startPositionChange(): ${direction}"
+
+	switch (direction) {
+		case "close":
+			close()
+            break
+		case "open":
+			open()
+            break
+		default:
+			throw new Exception("Unsupported startPositionChange direction \"${direction}\"")
+            break
+	}
+}
+
+def stopPositionChange() {
+	if (logEnable) log.debug "stopPositionChange()"
+	stop()
 }
 
 def supportsTilt180() {
@@ -447,8 +490,7 @@ def supportsTilt180() {
             result = true
             break
         default:
-            log.error "shade does not support tilt capability (shade capability = ${shadeCapabilities})"
-            break
+            throw new Exception("Shade does not support tilt capability (shade capability = ${shadeCapabilities})")
     }
     
     return result
@@ -469,8 +511,7 @@ def supportsTilt() {
             result = true
             break
         default:
-            log.error "shade does not support tilt capability (shade capability = ${shadeCapabilities})"
-            break
+            throw new Exception("Shade does not support tilt capability (shade capability = ${shadeCapabilities})")
     }
     
     return result
@@ -485,15 +526,15 @@ def isClosed(level) {
     def result
 
     if (getShadeCapabilities() == 7) {
-        log.debug "Checking TB/BU shade closed state"
+        if (logEnable) log.debug "Checking TB/BU shade closed state"
         result = (device.currentValue('bottomPosition', true) == 0 && device.currentValue('topPosition', true) == 0) ? true : false
     }
     else {
-        log.debug "Checking shade closed state"
+        if (logEnable) log.debug "Checking shade closed state"
         result = (level == 0) ? true : false
     }
     
-    log.debug "isClosed() = ${result}"
+    if (logEnable) log.debug "isClosed() = ${result}"
     
     return result
 }
@@ -503,15 +544,15 @@ def isOpen(level) {
     def result
 
     if (getShadeCapabilities() == 7) {
-        log.debug "Checking TB/BU shade open state"
-        result = (device.currentValue('bottomPosition', true) == 100 && device.currentValue('topPosition', true) == 100) ? true : false
+        if (logEnable) log.debug "Checking TB/BU shade open state"
+        result = (device.currentValue('bottomPosition', true) == 100 && device.currentValue('topPosition', true) == 0) ? true : false
     }
     else {
-        log.debug "Checking shade closed state"
+        if (logEnable) log.debug "Checking shade open state"
         result = (level == 100) ? true : false
     }
     
-    log.debug "isOpen() = ${result}"
+    if (logEnable) log.debug "isOpen() = ${result}"
     
     return result
 }
