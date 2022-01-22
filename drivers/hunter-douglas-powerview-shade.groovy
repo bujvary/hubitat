@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/21/2022 v2.3.0 - Version number update only
  *    01/20/2022 v2.2.0 - Changed topPosition to 0 in open() and isOpen() for TD/BU shades
  *                      - Modified setLevel() to set topPosition to 0 and bottomPosition to user requested position for TD/BU shades
  *                      - Added startPositionChange() and stopPositionChange() as well as "stop" command and stop()
