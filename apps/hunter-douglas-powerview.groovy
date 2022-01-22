@@ -15,6 +15,9 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/21/2022 v2.3.0 - Changed to group polling of devices instead of individual device polling
+ *                      - Added option to control polling of repeaters
+ *                      - Added option to control forced refresh polling
  *    01/20/2022 v2.2.0 - Added stopShade()
  *                      - Removed unnecessary calls to unsubscribe()
  *    01/19/2022 v2.1.0 - General release with shade tilt capability
@@ -107,7 +110,9 @@ def mainPage() {
                     atomicState?.loadingDevices = false
                 }
                 section("") {
-                    input("disablePoll", "bool", title: "Disable periodic polling of devices", required: false, defaultValue: false)
+                    input("disablePoll", "bool", title: "Disable periodic polling of all devices", required: false, defaultValue: false)
+                    input("enableRepeaterPoll", "bool", title: "Enable periodic polling of repeater devices", required: false, defaultValue: false)
+                    input("enableForcedUpdate", "bool", title: "Enable forced update of shade devices", required: false, defaultValue: false)
                     input("logEnable", "bool", title: "Enable debug logging", required: false, defaultValue: true)
                 }
             }
@@ -133,7 +138,6 @@ def devicesPage() {
     }
 
     if (logEnable) log.debug "atomicState?.deviceData = ${atomicState?.deviceData}"
-    //if (!atomicState?.deviceData?.shades || !atomicState?.deviceData?.scenes || !atomicState?.deviceData?.rooms || !atomicState?.deviceData?.repeaters) {
     if (atomicState?.gettingShades || atomicState?.gettingScenes || atomicState?.gettingRooms || atomicState?.gettingRepeaters) {
         pageProperties["refreshInterval"] = 1
         return dynamicPage(pageProperties) {
@@ -276,15 +280,18 @@ def updated() {
 }
 
 def uninstalled() {
-    removeDevices()
+    if (logEnable) log.debug "In uninstalled()"
     unschedule()
+    removeDevices()
 }
 
 def initialize() {
-    atomicState?.installed = true
-    addDevices()
-    unschedule()
+    if (logEnable) log.debug "In initialize()"
     
+    atomicState?.installed = true
+    unschedule()
+    addDevices()
+
     pollDevices(true)
     runEvery5Minutes("pollDevices")
     
@@ -390,7 +397,6 @@ def removeDevices() {
 def pollDevices(firstPoll = false) {
     def now = now()
     def updateBattery = false
-    def runDelay = 1
 
     if (!firstPoll && disablePoll) {
         if (logEnable) log.debug "pollDevices: skipping polling because polling is disabled"
@@ -405,41 +411,11 @@ def pollDevices(firstPoll = false) {
 
     if (logEnable) log.debug "pollDevices: updateBattery = ${updateBattery}"
 
-    getShadeDevices().eachWithIndex { device, index ->
-        if (device != null) {
-            def shadeId = dniToShadeId(device.deviceNetworkId)
-            
-            if (logEnable) log.debug "Running pollShadeDelayed() with runDelay = ${runDelay} for shade ${shadeId} (index = ${index})"
-            
-            runIn(runDelay, "pollShadeDelayed", [overwrite: false, data: [shadeId: shadeId, updateBattery: updateBattery]])
-            runDelay += 5
-        } else {
-            if (logEnable) log.debug "Got null shade device, index ${index}"
-        }
+    runIn(1, "pollShades", [overwrite: false, data: [updateBattery: updateBattery]])
+    
+    if (enableRepeaterPoll) {
+        runIn(5, "pollRepeaters", [overwrite: false])
     }
-
-    getRepeaterDevices().eachWithIndex { device, index ->
-        if (device != null) {
-            def repeaterId = dniToRepeaterId(device.deviceNetworkId)
-            
-            if (logEnable) log.debug "Running pollRepeaterDelayed() with runDelay = ${runDelay} for repeater ${repeaterId}"
-            
-            runIn(runDelay, "pollRepeaterDelayed", [overwrite: false, data: [repeaterId: repeaterId]])
-            runDelay += 5
-        } else {
-            if (logEnable) log.debug "Got null repeater device, index ${index}"
-        }
-    }
-}
-
-def pollShadeDelayed(data) {
-    if (logEnable) log.debug "pollShadeDelayed: data: ${data}"
-    pollShadeId(data.shadeId, data.updateBattery)
-}
-
-def pollRepeaterDelayed(data) {
-    if (logEnable) log.debug "pollRepeaterDelayed: data: ${data}"
-    pollRepeaterId(data.repeaterId)
 }
 
 /*
@@ -610,7 +586,7 @@ def getFirmwareVer() {
 }
 
 void firmwareVerCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered firmwareVerCallback()..."
+    if (logEnable) log.debug "In firmwareVerCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     state.fwName = hubResponse.json.firmware.mainProcessor.name
@@ -652,7 +628,7 @@ def closeRoom(roomDevice) {
 }
 
 void roomsCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered roomsCallback()..."
+    if (logEnable) log.debug "In roomsCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def rooms = [:]
@@ -688,7 +664,7 @@ def triggerScene(sceneId) {
 }
 
 void scenesCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered scenesCallback()..."
+    if (logEnable) log.debug "In scenesCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def scenes = [:]
@@ -709,7 +685,7 @@ void scenesCallback(hubitat.device.HubResponse hubResponse) {
 }
 
 def triggerSceneCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered triggerScenesCallback()..."
+    if (logEnable) log.debug "In triggerScenesCallback()..."
 
     if (hubResponse.status != 200) {
         log.warn("got unexpected response: status=${hubResponse.status} body=${hubResponse.body}")
@@ -740,6 +716,24 @@ def pollShadeId(shadeId, updateBatteryStatus = false) {
         query = [refresh: "true"]
 
     callPowerView("shades/${shadeId}", shadePollCallback, query)
+}
+
+def pollShades(data) {
+    if (logEnable) log.debug "pollShades: data = ${data}"
+    
+    def query = [:]
+    if (data != null && data.updateBattery) {
+        if (logEnable) log.debug "pollShades: forcing synchronization of battery level state"
+        query = [updateBatteryLevel: "true"]
+    }
+    else {
+        if (enableForcedUpdate) {
+            if (logEnable) log.debug "pollShades: forcing the Hub to query shades for their current positions"
+            query = [refresh: "true"]
+        }
+    }
+
+    callPowerView("shades", shadesPollCallback, query)
 }
 
 def calibrateShade(shadeDevice) {
@@ -800,7 +794,7 @@ def moveShade(shadeDevice, movementInfo) {
 }
 
 void shadePollCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered shadePollCallback()..."
+    if (logEnable) log.debug "In shadePollCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def shade = hubResponse.json.shade
@@ -810,8 +804,24 @@ void shadePollCallback(hubitat.device.HubResponse hubResponse) {
     childDevice.handleEvent(shade)
 }
 
+def shadesPollCallback(hubitat.device.HubResponse hubResponse) {
+    if (logEnable) log.debug "In shadesPollCallback()..."
+    if (logEnable) log.debug "json: ${hubResponse.json}"
+
+    if (hubResponse.status == 200) {
+        hubResponse.json.shadeData.each { shade ->
+            def childDevice = getShadeDevice(shade.id)
+            
+            if (childDevice != null)
+                childDevice.handleEvent(shade)
+        }
+    } else {
+        log.error "shadesPollCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+    }
+}
+
 void setPositionCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered setPositionCallback()..."
+    if (logEnable) log.debug "In setPositionCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def shade = hubResponse.json.shade
@@ -821,9 +831,8 @@ void setPositionCallback(hubitat.device.HubResponse hubResponse) {
     childDevice.handleEvent(shade)
 }
 
-
 void shadesCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered shadesCallback()..."
+    if (logEnable) log.debug "In shadesCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def shades = [:]
@@ -850,7 +859,7 @@ def getRepeaters() {
 }
 
 void repeatersCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered repeatersCallback()..."
+    if (logEnable) log.debug "In repeatersCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def repeaters = [:]
@@ -877,6 +886,12 @@ def pollRepeater(repeaterDevice) {
     pollRepeaterId(repeaterId)
 }
 
+def pollRepeaters() {
+    if (logEnable) log.debug "In pollRepeaters()..."
+    
+    callPowerView("repeaters", repeatersPollCallback, query)
+}
+
 def pollRepeaterId(repeaterId) {
     if (logEnable) log.debug "pollRepeaterId: repeaterId = ${repeaterId}"
 
@@ -894,7 +909,7 @@ def setRepeaterPrefs(repeaterDevice, prefs) {
 }
 
 void setRepeaterPrefsCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered setRepeaterPrefsCallback()..."
+    if (logEnable) log.debug "In setRepeaterPrefsCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def repeater = hubResponse.json.repeater
@@ -905,7 +920,7 @@ void setRepeaterPrefsCallback(hubitat.device.HubResponse hubResponse) {
 }
 
 void repeaterPollCallback(hubitat.device.HubResponse hubResponse) {
-    if (logEnable) log.debug "Entered repeaterPollCallback()..."
+    if (logEnable) log.debug "In repeaterPollCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
     def repeater = hubResponse.json.repeater
@@ -913,6 +928,22 @@ void repeaterPollCallback(hubitat.device.HubResponse hubResponse) {
 
     if (logEnable) log.debug "repeaterPollCallback for repeater id ${repeater.id}, calling device ${childDevice}"
     childDevice.handleEvent(repeater)
+}
+
+def repeatersPollCallback(hubitat.device.HubResponse hubResponse) {
+    if (logEnable) log.debug "In repeatersPollCallback()..."
+    if (logEnable) log.debug "json: ${hubResponse.json}"
+
+    if (hubResponse.status == 200) {
+        hubResponse.json.repeaterData.each { repeater ->
+            def childDevice = getRepeaterDevice(repeater.id)
+            
+            if (childDevice != null)
+                childDevice.handleEvent(repeater)
+        }
+    } else {
+        log.error "repeatersPollCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+    }
 }
 
 def sendBatteryLowNotification(shadeDevice) {
