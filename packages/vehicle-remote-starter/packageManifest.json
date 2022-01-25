@@ -1,11 +1,11 @@
 {
 	"packageName": "Vehicle Remote Starter",
-	"version": "1.3",
+	"version": "1.4",
 	"minimumHEVersion": "1.2",
 	"author": "Brian Ujvary",
-	"dateReleased": "2021-12-20",
+	"dateReleased": "2022-01-25",
 	"documentationLink": "https://github.com/bujvary/hubitat",
-	"releaseNotes": "Set state.vehicleStatus to started/stopped after successful start/stop",
+	"releaseNotes": "Fixed issues with input defaults and duration settings",
 	"apps" : [
 		{
 			"id" : "13714203-4b27-4317-b1ca-3efd202e86d7",
@@ -24,7 +24,7 @@
 			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/vehicle-remote-starter-app.groovy",
 			"required": true,
 			"oauth": false,
-			"version": "1.3"
+			"version": "1.4"
 		}
 	],
 	"drivers" : [
