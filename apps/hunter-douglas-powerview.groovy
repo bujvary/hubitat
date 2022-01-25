@@ -15,7 +15,12 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
- *    01/24/2022 v2.4.0 - Reverted back to individual device polling since 
+ *    01/25/2022 v2.5.0 - Added option to control forced refresh polling
+ *                      - Added option for shade position polling interval
+ *                      - Added option for battery level polling interval
+ *                      - Changed option disablePoll to enableShadePoll
+ *                      - Modified formatting of app pages
+ *    01/24/2022 v2.4.0 - Reverted back to individual device polling 
  *                      - Removed option to control forced refresh polling
  *                        NOTE: Going back to individual shade polling using the refresh query string
  *                        was done to ensure an accurate Hub view of shade position since shades can be
@@ -52,7 +57,7 @@ import groovy.transform.Field
 definition(
     name: "Hunter Douglas PowerView",
     namespace: "hdpowerview",
-    author: "Chris Lang",
+    author: "Brian Ujvary",
     description: "Provides control of Hunter Douglas shades, scenes and repeaters via the PowerView hub.",
     category: "Convenience",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
@@ -94,7 +99,7 @@ def mainPage() {
     }
 
     return dynamicPage(pageProperties) {
-        section("PowerView Hub") {
+        section("<big><b>PowerView Hub</b></big>") {
             input("powerviewIPAddress", "text", title: "IP Address", defaultValue: "", description: "(ie. 192.168.1.10)", required: true, submitOnChange: true)
         }
        
@@ -104,22 +109,30 @@ def mainPage() {
                     paragraph "Please wait..."
                 }
             } else {
-                section("Firmware Version") {
+                section("<big><b>Firmware Version</b></big>") {
                     paragraph "${htmlTab}Name: ${state.fwName}</br>${htmlTab}Revision: ${state.fwRevision}</br>${htmlTab}SubRevision: ${state.fwSubRevision}</br>${htmlTab}Build: ${state.fwBuild}"
                 }
-                section("Devices & Scenes") {
+                section("<big><b>Devices & Scenes</b></big>") {
                     def description = (atomicState?.deviceData) ? "Click to modify" : "Click to configure";
                     href "devicesPage", title: "Manage Devices", description: description, state: "complete"
                     atomicState?.loadingDevices = false
                 }
-                section("Notifications") {
+                section("<big><b>Polling</b></big>") {
+                    input("enableShadePoll", "bool", title: "Enable periodic polling of shade devices", required: false, defaultValue: true)
+                    input("enableRepeaterPoll", "bool", title: "Enable periodic polling of repeater devices", required: false, defaultValue: false)
+                    input("enableForcedUpdate", "bool", title: "Enable forced update of shade devices", required: false, defaultValue: true)
+                    paragraph "<i>NOTE: If forced update of shade devices is NOT enabled the cached state of the shades will be retrieved from the Powerview Hub which may not match the actual state of the shades. Enabling forced update will ensure Hubitat will have the current state of the shades.</i>"
+                    
+                    input("shadePollInterval", 'enum', title: "Shade Position Polling Interval", required: true, defaultValue: shadePollIntervalSetting, options: getPollIntervals())
+                    input("batteryPollInterval", 'number', title: "Battery Level Polling Interval (hours)", required: true, defaultValue: 1, range: "1..24")
+                }
+                section("<big><b>Notifications</b></big>") {
                     href "notificationsPage", title: "Text Notifications", description: "Click here for Options", state: "complete"
                     atomicState?.loadingDevices = false
                 }
-                section("") {
-                    input("disablePoll", "bool", title: "Disable periodic polling of all devices", required: false, defaultValue: false)
-                    input("enableRepeaterPoll", "bool", title: "Enable periodic polling of repeater devices", required: false, defaultValue: false)
-                    input("logEnable", "bool", title: "Enable debug logging <i>(Automatically disables after 15 minutes)</i>", required: false, defaultValue: true)
+                section("<big><b>Logging</b></big>") {
+                    input("logEnable", "bool", title: "Enable debug logging", required: false, defaultValue: true)
+                    paragraph "<i>Automatically disables after 15 minutes</i>"
                 }
             }
         }
@@ -129,7 +142,7 @@ def mainPage() {
 def devicesPage() {
     def pageProperties = [
         name: "devicesPage",
-        title: "Manage Devices"
+        title: "<b>Manage Devices</b>"
     ]
 
     if (logEnable) log.debug "atomicState?.loadingDevices = ${atomicState?.loadingDevices}"
@@ -208,8 +221,13 @@ def devicesPage() {
 }
 
 def notificationsPage() {
-	dynamicPage(name: "notificationsPage", title: "", install: false, uninstall: false) {
-		section("<big><b>Notifications</b></big>") {
+    def pageProperties = [
+        name: "notificationsPage",
+        title: "<b>Notifications</b>"
+    ]
+
+	dynamicPage(pageProperties) {
+		section() {
 			paragraph "Send push notification once per day when shade battery wand is low (as defined by Hunter Douglas)."
 
 			input "shadeBatteryLowDevices", "capability.notification",
@@ -223,7 +241,7 @@ def notificationsPage() {
 def roomsPage() {
     def pageProperties = [
         name: "roomsPage",
-        title: "Manage Rooms"
+        title: "<b>Manage Rooms</b>"
     ]
 
     dynamicPage(pageProperties) {
@@ -297,7 +315,38 @@ def initialize() {
     unschedule()
     
     pollDevices(true)
-    runEvery5Minutes("pollDevices")
+
+    if (logEnable) log.debug "Configuring shade polling for every ${shadePollIntervalSetting} ${shadePollIntervalSetting == 1 ? 'minute' : 'minutes'}"
+
+    switch (shadePollIntervalSetting) {
+      case 1:
+        if (logEnable) log.debug "runEvery1Minute"
+        runEvery1Minute("pollDevices")
+        break
+      case 5:
+        if (logEnable) log.debug "runEvery5Minutes"
+        runEvery5Minutes("pollDevices")
+        break
+      case 10:
+        if (logEnable) log.debug "runEvery10Minutes"
+        runEvery10Minutes("pollDevices")
+        break
+      case 15:
+        if (logEnable) log.debug "runEvery15Minutes"
+        runEvery15Minutes("pollDevices")
+        break
+      case 30:
+        if (logEnable) log.debug "runEvery30Minutes"
+        runEvery30Minutes("pollDevices")
+        break
+      case 60:
+        if (logEnable) log.debug "runEvery1Hour"
+        runEvery1Hour("pollDevices")
+        break
+      default:
+        if (logEnable) log.debug "DEFAULT: runEvery5Minutes"
+        runEvery5Minutes("pollDevices")
+    }
     
     if (logEnable) runIn(900, logsOff)
 }
@@ -403,33 +452,34 @@ def pollDevices(firstPoll = false) {
     def updateBattery = false
     def runDelay = 1
 
-    if (!firstPoll && disablePoll) {
-        if (logEnable) log.debug "pollDevices: skipping polling because polling is disabled"
-        return
-    }
+    if (enableShadePoll || firstPoll) {
+        if (enableForcedUpdate) {
+            // Update battery status no more than once an hour
+            if (!atomicState?.lastBatteryUpdate || (now - atomicState?.lastBatteryUpdate) > (batteryPollInterval.toInteger() * 60 * 60 * 1000)) {
+                updateBattery = true
+                atomicState?.lastBatteryUpdate = now
+            }
 
-    // Update battery status no more than once an hour
-    if (!atomicState?.lastBatteryUpdate || (now - atomicState?.lastBatteryUpdate) > (60 * 60 * 1000)) {
-        updateBattery = true
-        atomicState?.lastBatteryUpdate = now
-    }
+            if (logEnable) log.debug "pollDevices: updateBattery = ${updateBattery}"
 
-    if (logEnable) log.debug "pollDevices: updateBattery = ${updateBattery}"
-
-    getShadeDevices().eachWithIndex { device, index ->
-        if (device != null) {
-            def shadeId = dniToShadeId(device.deviceNetworkId)
+            getShadeDevices().eachWithIndex { device, index ->
+                if (device != null) {
+                    def shadeId = dniToShadeId(device.deviceNetworkId)
             
-            if (logEnable) log.debug "Running pollShadeDelayed() with runDelay = ${runDelay} for shade ${shadeId} (index = ${index})"
+                    if (logEnable) log.debug "Running pollShadeDelayed() with runDelay = ${runDelay} for shade ${shadeId} (index = ${index})"
             
-            runIn(runDelay, "pollShadeDelayed", [overwrite: false, data: [shadeId: shadeId, updateBattery: updateBattery]])
-            runDelay += 5
+                    runIn(runDelay, "pollShadeDelayed", [overwrite: false, data: [shadeId: shadeId, updateBattery: updateBattery]])
+                    runDelay += 5
+                } else {
+                    if (logEnable) log.debug "Got null shade device, index ${index}"
+                }
+            }
         } else {
-            if (logEnable) log.debug "Got null shade device, index ${index}"
+            runIn(1, "pollShades", [overwrite: false, data: [updateBattery: updateBattery]])
         }
     }
 
-    if (enableRepeaterPoll) {
+    if (enableRepeaterPoll || firstPoll) {
 		getRepeaterDevices().eachWithIndex { device, index ->
 			if (device != null) {
 				def repeaterId = dniToRepeaterId(device.deviceNetworkId)
@@ -755,6 +805,18 @@ def pollShadeId(shadeId, updateBatteryStatus = false) {
     callPowerView("shades/${shadeId}", shadePollCallback, query)
 }
 
+def pollShades(data) {
+    if (logEnable) log.debug "pollShades: data = ${data}"
+    
+    def query = [:]
+    if (data != null && data.updateBattery) {
+        if (logEnable) log.debug "pollShades: forcing synchronization of battery level state"
+        query = [updateBatteryLevel: "true"]
+    }
+
+    callPowerView("shades", shadesPollCallback, query)
+}
+
 def calibrateShade(shadeDevice) {
     if (logEnable) log.debug "calibrateShade: shadeDevice = ${shadeDevice}"
     moveShade(shadeDevice, [motion: "calibrate"])
@@ -821,6 +883,22 @@ void shadePollCallback(hubitat.device.HubResponse hubResponse) {
 
     if (logEnable) log.debug "shadePollCallback for shade id ${shade.id}, calling device ${childDevice}"
     childDevice.handleEvent(shade)
+}
+
+def shadesPollCallback(hubitat.device.HubResponse hubResponse) {
+    if (logEnable) log.debug "In shadesPollCallback()..."
+    if (logEnable) log.debug "json: ${hubResponse.json}"
+
+    if (hubResponse.status == 200) {
+        hubResponse.json.shadeData.each { shade ->
+            def childDevice = getShadeDevice(shade.id)
+            
+            if (childDevice != null)
+                childDevice.handleEvent(shade)
+        }
+    } else {
+        log.error "shadesPollCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+    }
 }
 
 void setPositionCallback(hubitat.device.HubResponse hubResponse) {
@@ -965,4 +1043,26 @@ def callPowerView(String path, callback, Map query = null, String method = "GET"
     if (logEnable) log.debug "Sending HubAction: ${hubAction}"
 
     sendHubCommand(hubAction)
+}
+
+// UTILITY FUNCTIONS
+
+def getPollIntervals() {
+    return [["1":"1 Minute"],["5":"5 Minutes [DEFAULT]"],["10":"10 Minutes"],["15":"15 Minutes"],["30":"30 Minutes"],["60":"60 Minutes"]]
+}
+
+Integer getShadePollIntervalSetting() {
+	return safeToInt((settings ? settings["shadePollInterval"] : null), 5)
+}
+
+Integer safeToInt(val, Integer defaultVal=0) {
+	if ("${val}"?.isInteger()) {
+		return "${val}".toInteger()
+	}
+	else if ("${val}".isDouble()) {
+		return "${val}".toDouble()?.round()
+	}
+	else {
+		return  defaultVal
+	}
 }
