@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/25/2022 v2.5.0 - Remove LED color preference and replace with setColor command 
  *    01/24/2022 v2.4.0 - Version number update only
  *    01/21/2022 v2.3.0 - Version number update only
  *    01/20/2022 v2.2.0 - Version number update only
@@ -29,20 +30,24 @@ metadata {
         capability "Actuator"
         capability "Refresh"
         capability "Switch Level"
+        
+        command(
+             "setColor", 
+             [
+                [
+                     "name":"LED Color",
+                     "description":"Set the LED color of the repeater",
+                     "type":"ENUM",
+                     "constraints": getColorOptions()
+                ]
+             ]
+        );
+        
+        attribute "colorName", "string"
     }
 
     preferences {
         input name: "blinkEnabled", type: "bool", description: "", title: "Blink During Commands", defaultValue: false, required: false
-        input name: "ledColor", type: "enum", description: "", title: "LED Color", displayDuringSetup: false, required: false, options: [
-            1: "Red",
-            2: "Purple",
-            3: "Cyan",
-            4: "Blue",
-            5: "Green",
-            6: "Tan",
-            7: "White",
-            8: "Off"
-        ]
         input name: "logEnable", type: "bool", description: "", title: "Enable Debug Logging", defaultValue: true, required: false
     }
 }
@@ -58,13 +63,7 @@ def initialize() {
 def updated() {
     if (logEnable) log.debug "In updated()"
 
-    def level = device.currentValue("level")
-    def prefsMap = [: ]
-    def rgbMap = getLedRGBMap()
-
-    rgbMap << [brightness: level]
-    prefsMap = [blinkEnabled: blinkEnabled, color: rgbMap]
-
+    def prefsMap = [blinkEnabled: blinkEnabled]
     parent.setRepeaterPrefs(device, prefsMap)
 }
 
@@ -75,13 +74,13 @@ public handleEvent(repeaterJson) {
     if (level != device.currentValue("level"))
         sendEvent(name: "level", value: level)
     
+    def colorName = rgbToColorName(repeaterJson.color)
+    if (colorName != device.currentValue("colorName"))
+        sendEvent(name: "colorName", value: colorName)
+    
     if (blinkEnabled != repeaterJson.blinkEnabled)
         device.updateSetting("blinkEnabled", [value: repeaterJson.blinkEnabled, type: "bool"])
 
-    def colorEnum = getLedColorEnum(repeaterJson.color)
-    if (ledColor != colorEnum)
-        device.updateSetting("ledColor", [value: colorEnum, type: "enum"])
-    
     device.updateDataValue("firmwareVersion", "${repeaterJson.firmware.revision}.${repeaterJson.firmware.subRevision}.${repeaterJson.firmware.build}")
 }
 
@@ -90,8 +89,10 @@ def refresh() {
 }
 
 def setLevel(level) {
-    def colorMap = [: ]
-    def rgbMap = getLedRGBMap()
+    if (logEnable) log.debug "setLevel() level = $level"
+    
+    def colorMap = [:]
+    def rgbMap = colorNameToRgb(device.currentValue("colorName"))
 
     rgbMap << [brightness: level]
     colorMap = [color: rgbMap]
@@ -99,35 +100,49 @@ def setLevel(level) {
     parent.setRepeaterPrefs(device, colorMap)
 }
 
-private Map getLedRGBMap() {
-    Map rgb = [: ]
+def setColor(color) {
+    if (logEnable) log.debug "setColor() color = $color"
+    
+    def colorMap = [:]
+    def rgbMap = colorNameToRgb(color)
 
-    switch (ledColor.toInteger()) {
-        case 1:
+    rgbMap << [brightness: device.currentValue("level")]
+    colorMap = [color: rgbMap]
+
+    parent.setRepeaterPrefs(device, colorMap)
+}
+
+private Map colorNameToRgb(colorName) {
+    if (logEnable) log.debug "colorNameToRgb() colorName = $colorName"
+    
+    Map rgb = [:]
+
+    switch (colorName) {
+        case "Red":
             rgb = ["red": 255, "green": 0, "blue": 0]
             break
-        case 2:
+        case "Purple":
             rgb = ["red": 153, "green": 0, "blue": 153]
             break
-        case 3:
+        case "Cyan":
             rgb = ["red": 0, "green": 204, "blue": 204]
             break
-        case 4:
+        case "Blue":
             rgb = ["red": 0, "green": 0, "blue": 255]
             break
-        case 5:
+        case "Green":
             rgb = ["red": 0, "green": 255, "blue": 0]
             break
-        case 6:
+        case "Tan":
             rgb = ["red": 255, "green": 190, "blue": 130]
             break
-        case 7:
+        case "White":
             rgb = ["red": 255, "green": 255, "blue": 255]
             break
-        case 8:
+        case "Off":
             rgb = ["red": 0, "green": 0, "blue": 0]
             break
-        default:
+        default:  //Off
             rgb = ["red": 0, "green": 0, "blue": 0]
             break
     }
@@ -135,31 +150,36 @@ private Map getLedRGBMap() {
     return rgb
 }
 
-private String getLedColorEnum(colorMap) {
-    String color
+private String rgbToColorName(rgbColor) {
+    if (logEnable) log.debug "rgbToColorName() rgbColor = $rgbColor"
+    
+    String colorName
 
-    colorMap.remove("brightness")
-
-    if (colorMap == ["red": 255, "green": 0, "blue": 0])
-        color = 1
-    else if (colorMap == ["red": 153, "green": 0, "blue": 153])
-        color = 2
-    else if (colorMap == ["red": 0, "green": 204, "blue": 204])
-        color = 3
-    else if (colorMap == ["red": 0, "green": 0, "blue": 255])
-        color = 4
-    else if (colorMap == ["red": 0, "green": 255, "blue": 0])
-        color = 5
-    else if (colorMap == ["red": 255, "green": 190, "blue": 130])
-        color = 6
-    else if (colorMap == ["red": 255, "green": 255, "blue": 255])
-        color = 7
-    else if (colorMap == ["red": 0, "green": 0, "blue": 0])
-        color = 8
+    rgbColor.remove("brightness")
+    if (rgbColor == ["red": 255, "green": 0, "blue": 0])
+        colorName = "Red"
+    else if (rgbColor == ["red": 153, "green": 0, "blue": 153])
+        colorName = "Purple"
+    else if (rgbColor == ["red": 0, "green": 204, "blue": 204])
+        colorName = "Cyan"
+    else if (rgbColor == ["red": 0, "green": 0, "blue": 255])
+        colorName = "Blue"
+    else if (rgbColor == ["red": 0, "green": 255, "blue": 0])
+        colorName = "Green"
+    else if (rgbColor == ["red": 255, "green": 190, "blue": 130])
+        colorName = "Tan"
+    else if (rgbColor == ["red": 255, "green": 255, "blue": 255])
+        colorName = "White"
+    else if (rgbColor == ["red": 0, "green": 0, "blue": 0])
+        colorName = "Off"
     else
-        color = 8
+        colorName = "Off"
 
-    return color
+    return colorName
+}
+
+def getColorOptions() {
+    return ["Red", "Purple", "Cyan", "Blue", "Green", "Tan", "White", "Off"]
 }
 
 def logsOff() {
