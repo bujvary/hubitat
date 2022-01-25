@@ -3,6 +3,11 @@
  *
  *  Changelog:
  *
+ *    1.4 (1/25/2022)
+ *      - Fixed issue with input drop-downs not showing default values
+ *      - Fixed issue with "get" functions for some settings
+ *      - Fixed issue in turnOnRelaySwitch() with start/stop duration settings
+ *
  *    1.3 (12/20/2021)
  *      - Set state.vehicleStatus to started/stopped after successful start/stop
  *
@@ -34,11 +39,6 @@
  *
  */
 import groovy.transform.Field
-
-@Field static Map delayOptions = [0:"Disabled", 500:"500 Milliseconds  [DEFAULT]", 750:"750 Milliseconds", 1000:"1000 Milliseconds", 1250:"1250 Milliseconds", 1500:"1500 Milliseconds", 2000:"2000 Milliseconds"]
-@Field static Map toggleOptions = [1:"1 Toggle", 2:"2 Toggles", 3:"3 Toggles  [DEFAULT]", 4:"4 Toggles", 5:"5 Toggles", 6:"6 Toggles"]
-@Field static Map durationOptions = [5:"5 Seconds", 6:"6 Seconds", 7:"7 Seconds", 8:"8 Seconds", 9:"9 Seconds", 10:"10 Seconds [DEFAULT]", 11:"11 Seconds", 12:"12 Seconds", 13:"13 Seconds", 14:"14 Seconds", 15:"15 Seconds", 16:"16 Seconds", 17:"17 Seconds", 18:"18 Seconds", 19:"19 Seconds", 20:"20 Seconds", 21:"21 Seconds", 22:"22 Seconds", 23:"23 Seconds", 24:"24 Seconds", 25:"25 Seconds", 26:"26 Seconds", 27:"27 Seconds", 28:"28 Seconds", 29:"29 Seconds", 30:"30 Seconds"]
-@Field static Map daysOptions = [0:"Sunday", 1:"Monday", 2:"Tuesday", 3:"Wednesday", 4:"Thursday", 5:"Friday",6:"Saturday"]
 
 definition(
 	name: "Vehicle Remote Starter App",
@@ -139,7 +139,7 @@ def pageDelayTimers() {
 				title: "<b>Select Auto-Off Timer:</b>",
 				required: false,
 				defaultValue: autoOffDelaySetting,
-				options: delayOptions
+				options: getDelayOptions()
 
 			paragraph ""
 		}
@@ -151,7 +151,7 @@ def pageDelayTimers() {
 				title: "<b>Select Toggle Delay Timer:</b>",
 				required: false,
 				defaultValue: toggleDelaySetting,
-				options: delayOptions
+				options: getDelayOptions()
 
 			paragraph ""
 		}
@@ -163,11 +163,11 @@ def pageDurations() {
 		section("<big><b>Vehicle Start Duration</b></big>") {
 			paragraph "The Vehicle Start Duration should be set to a value greater than or equal to the amount of time it takes for the vehicle to start."
 
-			input "operatingDuration", "enum",
+			input "startDuration", "enum",
 				title: "<b>Select Vehicle Start Duration:</b>",
 				required: false,
 				defaultValue: startDurationSetting,
-				options: durationOptions
+				options: getDurationOptions()
 
 			paragraph ""
 		}
@@ -175,11 +175,11 @@ def pageDurations() {
 		section("<big><b>Vehicle Stop Duration</b></big>") {
 			paragraph "The Vehicle Stop Duration should be set to a value greater than or equal to the amount of time it takes for the vehicle to stop."
 
-			input "operatingDuration", "enum",
+			input "stopDuration", "enum",
 				title: "<b>Select Vehicle Stop Duration:</b>",
 				required: false,
 				defaultValue: stopDurationSetting,
-				options: durationOptions
+				options: getDurationOptions()
 
 			paragraph ""
 		}
@@ -229,7 +229,7 @@ def pageToggles() {
 				title: "<b>Select Number of Toggles:</b>",
 				required: false,
 				defaultValue: startToggleSetting,
-				options: toggleOptions
+				options: getToggleOptions()
 
 			paragraph ""
 		}
@@ -241,7 +241,7 @@ def pageToggles() {
 				title: "<b>Select Number of Toggles:</b>",
 				required: false,
 				defaultValue: stopToggleSetting,
-				options: toggleOptions
+				options: getToggleOptions()
 
 			paragraph ""
 		}
@@ -253,7 +253,7 @@ def pageToggles() {
 				title: "<b>Select Number of Toggles:</b>",
 				required: false,
 				defaultValue: lockToggleSetting,
-				options: toggleOptions
+				options: getToggleOptions()
 
 			paragraph ""
 		}
@@ -340,7 +340,7 @@ void childStart(childDNI) {
     
 	if (vehicleContactStatus == "open") {  
 		state.vehicleStatus = "starting"
-		state.relayToggleCount = numStartTogglesSetting
+		state.relayToggleCount = startToggleSetting
         
 		logDebug "state.relayToggleCount: ${state?.relayToggleCount}"
         
@@ -358,7 +358,7 @@ void childStop(childDNI) {
 
 	if (vehicleContactStatus == "closed") {
 		state.vehicleStatus = "stopping"
-		state.relayToggleCount = numStopTogglesSetting
+		state.relayToggleCount = stopToggleSetting
         
 		logDebug "state.relayToggleCount: ${state?.relayToggleCount}"
         
@@ -372,7 +372,7 @@ void childStop(childDNI) {
 void childLock(childDNI) {
 	logDebug "${childVehicle?.displayName} - childLock()"
 
-	state.relayToggleCount = numLockTogglesSetting
+	state.relayToggleCount = lockToggleSetting
     logDebug "state.relayToggleCount: ${state?.relayToggleCount}"
 	turnOnRelaySwitch()
 }
@@ -443,9 +443,11 @@ void vehicleContactEventHandler(evt) {
 void checkVehicleStatus() {
 	logDebug "${childVehicle?.displayName} - checkVehicleStatus()..."
     
+    def vehicle = childVehicle
 	String vehicleContactStatus = settings?.vehicleContactSensor?.currentValue("contact")
     
 	if (state?.vehicleStatus == "starting" && vehicleContactStatus != "closed") {
+        vehicle?.parse([name: "switch", value: "off", displayed: true])
 		sendFailedNotification("start")
 	}
     else
@@ -454,6 +456,7 @@ void checkVehicleStatus() {
     }
     
 	if (state?.vehicleStatus == "stopping" && vehicleContactStatus != "open") {
+        vehicle?.parse([name: "switch", value: "on", displayed: true])
 		sendFailedNotification("stop")
 	}
     else
@@ -480,6 +483,18 @@ void sendFailedNotification(String failedStatus) {
 	}
 }
 
+def getDelayOptions() {
+    return [[0:"Disabled"], [500:"500 Milliseconds  [DEFAULT]"], [750:"750 Milliseconds"], [1000:"1000 Milliseconds"], [1250:"1250 Milliseconds"], [1500:"1500 Milliseconds"], [2000:"2000 Milliseconds"]]
+}
+
+def getToggleOptions() {
+    return [[1:"1 Toggle"], [2:"2 Toggles"], [3:"3 Toggles [DEFAULT]"], [4:"4 Toggles"], [5:"5 Toggles"], [6:"6 Toggles"]]
+}
+
+def getDurationOptions() {
+    return [[5:"5 Seconds"], [6:"6 Seconds"], [7:"7 Seconds"], [8:"8 Seconds"], [9:"9 Seconds"], [10:"10 Seconds [DEFAULT]"], [11:"11 Seconds"], [12:"12 Seconds"], [13:"13 Seconds"], [14:"14 Seconds"], [15:"15 Seconds"], [16:"16 Seconds"], [17:"17 Seconds"], [18:"18 Seconds"], [19:"19 Seconds"], [20:"20 Seconds"], [21:"21 Seconds"], [22:"22 Seconds"], [23:"23 Seconds"], [24:"24 Seconds"], [25:"25 Seconds"], [26:"26 Seconds"], [27:"27 Seconds"], [28:"28 Seconds"], [29:"29 Seconds"], [30:"30 Seconds"]]
+}
+
 def getChildVehicle() {
 	return childDevices?.find { it.deviceNetworkId?.endsWith("-vehicle") }
 }
@@ -492,24 +507,24 @@ Integer getToggleDelaySetting() {
 	return safeToInt((settings ? settings["toggleDelay"] : null), 500)
 }
 
-Integer getNumLockTogglesSetting() {
+Integer getLockToggleSetting() {
 	return safeToInt((settings ? settings["numLockToggles"] : null), 2)
 }
 
-Integer getNumStartTogglesSetting() {
+Integer getStartToggleSetting() {
 	return safeToInt((settings ? settings["numStartToggles"] : null), 3)
 }
 
-Integer getNumStopTogglesSetting() {
+Integer getStopToggleSetting() {
 	return safeToInt((settings ? settings["numStopToggles"] : null), 3)
 }
 
 Integer getStartDurationSetting() {
-	return safeToInt((settings ? settings["startDurationSetting"] : null), 10)
+	return safeToInt((settings ? settings["startDuration"] : null), 10)
 }
 
 Integer getStopDurationSetting() {
-	return safeToInt((settings ? settings["stopDurationSetting"] : null), 10)
+	return safeToInt((settings ? settings["stopDuration"] : null), 10)
 }
 
 Integer safeToInt(val, Integer defaultVal=0) {
