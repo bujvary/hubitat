@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2022-01-25",
-  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.5.0\nPowerview App\n * Added option to control forced refresh polling\n * Added option for shade position polling interval\n * Added option for battery level polling interval\n * Changed option disablePoll to enableShadePoll\n * Modified formatting of app pages\nRepeater Driver\n * Removed LED color preference and replace with setColor command",
+  "dateReleased": "2022-01-31",
+  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.5.1\nPowerview Shade Driver\n * Added attribute to indicate that a forced refresh timed out so it can be used in rules",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
-      "version": "2.5.0"
+      "version": "2.5.1"
     }
   ]
 }
