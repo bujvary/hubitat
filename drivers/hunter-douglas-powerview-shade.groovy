@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/31/2022 v2.5.1 - Added attribute to indicate that a forced refresh timed out so it can be used in rules
  *    01/25/2022 v2.5.0 - Version number update only
  *    01/24/2022 v2.4.0 - Version number update only
  *    01/21/2022 v2.3.0 - Version number update only
