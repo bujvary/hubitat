@@ -4,7 +4,7 @@
  *  Design Usage:
  *  This driver is used to get BLE beacon broadcast data from a BLE Wifi Gateway that posts data to a MQTT broker.
  *
- *  Copyright 2021 Brian Ujvary
+ *  Copyright 2022 Brian Ujvary
  *
  *  Based on work by Aaron Ward, Kirk Rader
  *  
@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.0 - Added health check to determine if BLE Gateway is alive
  *  1.2.0 - Removed reconnect() and added commands connect and disconnect
  *        - refactored connect/disconnect logic to prevent an infinite loop when the MQTT broker is down
  *        - added code back to create the generic component switch for vehicle presence override
@@ -97,6 +98,7 @@ def updated() {
     
     if (logEnable) runIn(900,logsOff)
     
+    unschedule()
     disconnect()
     connect()
 }
@@ -118,6 +120,8 @@ def initialize() {
     
     log.info "hub startup: connecting to mqtt in ${connectDelay} seconds"
     runIn(connectDelay.toInteger(), connect)
+    
+    schedule("0/10 * * * * ?", healthCheck)
 }
 
 def parse(String description) {
@@ -138,15 +142,20 @@ def parse(String description) {
     
     payloadJson.each { beacon ->
         if (logEnable) log.debug "mac: ${beacon.mac}"
-        def macDNI = "ble:" + beacon.mac
-        def macChild = getChildDevice(macDNI)
-        if (macChild == null) {
-            if (logEnable) log.warn "parse: child presence sensor does not exist for ${macDNI}"
-            macChild = addChildDevice("bujvary", "Virtual Presence with Timeout", macDNI, [label: "Vehicle Presence Sensor", isComponent: true])
+        if (beacon?.type) {
+            state.lastHealthCheck = now()
         }
+        else {
+            def macDNI = "ble:" + beacon.mac
+            def macChild = getChildDevice(macDNI)
+            if (macChild == null) {
+                if (logEnable) log.warn "parse: child presence sensor does not exist for ${macDNI}"
+                macChild = addChildDevice("bujvary", "Virtual Presence with Timeout", macDNI, [label: "Vehicle Presence Sensor", isComponent: true])
+            }
         
-        if (logEnable) log.debug "parse: updating presence sensor data for " + macDNI
-        macChild.parse(beacon.rssi)
+            if (logEnable) log.debug "parse: updating presence sensor data for " + macDNI
+            macChild.parse(beacon.rssi)
+        }
     }
     
     if (!disableLastUpdated) {
@@ -254,11 +263,29 @@ def removeChildDevices() {
     }
 }
 
-def updateOverrideSwitch(value) {
-    log.info "Updating vehicle presence override switch state to ${value}"
+def healthCheck() {
+    if (logEnable) log.debug "healthCheck()..."
+
+    def timeSinceLastHealthCheck = (now() - state.lastHealthCheck ?: 0) / 1000
     
+    if (timeSinceLastHealthCheck > 10) {
+        log.warn "Not receiving health check from BLE Gateway"
+        updateOverrideSwitch("on")
+    }
+    else {
+        updateOverrideSwitch("off")
+    }
+}
+
+def updateOverrideSwitch(value) {
+    if (logEnable) log.debug "updateOverrideSwitch(${value})..."
+
     com.hubitat.app.DeviceWrapper cd = getChildDevice("${device.deviceNetworkId}-switch")
-    if(cd != null) {
+    switchValue = cd?.currentValue("switch")
+
+    if (switchValue != value)
+    {
+        log.info "Updating vehicle presence override switch state to ${value}"
         cd.parse([[name: "switch", value: value, descriptionText:"${cd.displayName} was turned ${value}", isStateChange: true]])
     }
 }
