@@ -72,6 +72,7 @@ metadata {
         attribute "bottomPosition", "number"
         attribute "topPosition", "number"
         attribute "tiltPosition", "number"
+        attribute "refreshTimedOut", "enum", ["true", "false"]
     }
 
     preferences {
@@ -236,6 +237,9 @@ public handleEvent(shadeJson) {
         state.batteryVoltage = battVoltage
         descriptionText = "${device.displayName} battery is ${batteryLevel}%"
         sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: descriptionText])
+        def timedOut = shadeJson?.timedOut ? "timed out" : "succeeded"
+        descriptionText = "${device.displayName} refresh ${timedOut}"
+        sendEvent([name: "refreshTimedOut", value: shadeJson?.timedOut, descriptionText: descriptionText])
     }
 	
 	state.batteryStatus = shadeJson?.batteryStatus;  // 0 = No Status Available, 1 = Low, 2 = Medium, 3 = High, 4 = Plugged In
@@ -564,3 +568,4 @@ def logsOff() {
     log.warn "Debug logging disabled."
     device.updateSetting("logEnable", [value: "false", type: "bool"])
 }
+
