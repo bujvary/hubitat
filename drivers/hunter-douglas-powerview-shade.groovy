@@ -237,6 +237,9 @@ public handleEvent(shadeJson) {
         state.batteryVoltage = battVoltage
         descriptionText = "${device.displayName} battery is ${batteryLevel}%"
         sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: descriptionText])
+    }
+
+    if (shadeJson?.timedOut) {
         def timedOut = shadeJson?.timedOut ? "timed out" : "succeeded"
         descriptionText = "${device.displayName} refresh ${timedOut}"
         sendEvent([name: "refreshTimedOut", value: shadeJson?.timedOut, descriptionText: descriptionText])
