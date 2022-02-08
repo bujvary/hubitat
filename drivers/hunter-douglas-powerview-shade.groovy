@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    02/08/2022 v2.5.2 - Moved timedOut signal out of battery level update so it's detected as long as it's
+ *                        present in the JSON response.
  *    01/31/2022 v2.5.1 - Added attribute to indicate that a forced refresh timed out so it can be used in rules
  *    01/25/2022 v2.5.0 - Version number update only
  *    01/24/2022 v2.4.0 - Version number update only
