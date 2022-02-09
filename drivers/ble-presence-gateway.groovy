@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.2 - Refactored health check logic again to handle vehicle presence state switch properly
  *  1.3.1 - Refactored health check logic
  *  1.3.0 - Added health check to determine if BLE Gateway is alive
  *  1.2.0 - Removed reconnect() and added commands connect and disconnect
@@ -275,6 +276,13 @@ def removeChildDevices() {
 def healthCheck() {
     if (logEnable) log.debug "healthCheck()..."
 
+    def timeDiff = (now() - state.lastHealthCheck ?: 0) / 1000
+    if (logEnable) log.debug "timeDiff: ${timeDiff}, healthCheckInterval: ${settings?.healthCheckInterval.toInteger()}"
+        if (timeDiff > settings?.healthCheckInterval.toInteger()) {
+        log.warn "Did not receive heartbeat response from BLE Gateway (timeDiff = ${timeDiff})"
+        updateOverrideSwitch("on")
+    }
+    
     state.lastHealthCheck = now()
     def actionJson = '{"action": "heartBeat","requestId": "' + state.lastHealthCheck +'"}'
     publishMsg(actionJson)
@@ -282,17 +290,8 @@ def healthCheck() {
 
 def processHealthCheck() {
     if (logEnable) log.debug "processHealthCheck()..."
-
-    def timeDiff = (now() - state.lastHealthCheck ?: 0) / 1000
-    if (logEnable) log.debug "timeDiff: ${timeDiff}, healthCheckInterval: ${settings?.healthCheckInterval.toInteger()}"
     
-    if (timeDiff > settings?.healthCheckInterval.toInteger()) {
-        log.warn "Did not receive heartbeat response from BLE Gateway (timeDiff = ${timeDiff})"
-        updateOverrideSwitch("on")
-    }
-    else {
-        updateOverrideSwitch("off")
-    }
+    updateOverrideSwitch("off")
 }
 
 def updateOverrideSwitch(value) {
