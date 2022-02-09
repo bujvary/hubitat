@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.1 - Refactored health check logic
  *  1.3.0 - Added health check to determine if BLE Gateway is alive
  *  1.2.0 - Removed reconnect() and added commands connect and disconnect
  *        - refactored connect/disconnect logic to prevent an infinite loop when the MQTT broker is down
@@ -73,10 +74,12 @@ metadata {
         input name: "retryTime", type: "number", title: "MQTT Retry Connect Delay:", description: "<div><i>Number of seconds between connection retries if broker goes down</i></div>", defaultValue: 10, required: true
         input name: "connectDelay", type: "integer", title: "MQTT Startup Connect Delay:", description: "<div><i>On hub startup (in seconds)</i></div>", required: true, defaultValue: 60, displayDuringSetup: true
         input name: "overrideEnableDelay", type: "integer", title: "Vehicle Presence Override Enable Delay:", description: "<div><i>On MQTT connect (in seconds)</i></div>", required: true, defaultValue: 10, displayDuringSetup: true
-        input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "<div><i>Example Topic (topic/device/#)</i></div>", required: false, displayDuringSetup: true
-        input name: "topicPub", type: "text", title: "Topic to Publish:", description: "<div><i>Topic Value (topic/device/value)</i></div>", required: false, displayDuringSetup: true
+        input name: "topicStatusSub", type: "text", title: "Status Topic (Subscribe):", description: "<div><i>Example Topic (topic/status/#)</i></div>", required: false, displayDuringSetup: true
+        input name: "topicActionPublish", type: "text", title: "Action Topic (Publish):", description: "<div><i>Example Topic (topic/action/#)</i></div>", required: false, displayDuringSetup: true
+        input name: "topicActionResponseSub", type: "text", title: "Action Response Topic (Subscribe):", description: "<div><i>Example Topic (topic/action/response/#)</i></div>", required: false, displayDuringSetup: true
         input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
+        input name: "healthCheckInterval", type: "enum", title: "Health Check Interval", description: "<div><i>Number of seconds between health check messages sent to gateway</i></div>", options: ["10", "20", "30", "60"], required: true, defaultValue: "10", displayDuringSetup: true
         input name: "disableLastUpdated", type: "bool", title: "Disable LastUpdated Event", required: false, defaultValue: true, displayDuringSetup: true
         input name: "logEnable", type: "bool", title: "Enable logging", description: "<div><i>Automatically disables after 15 minutes</i></div>", required: true, defaultValue: true
     }
@@ -101,6 +104,8 @@ def updated() {
     unschedule()
     disconnect()
     connect()
+    
+    schedule("0/${settings.healthCheckInterval.toInteger()} * * * * ?", healthCheck)
 }
 
 def uninstalled() {
@@ -114,14 +119,14 @@ def uninstalled() {
 def initialize() {
     if (logEnable) log.debug "initialize()..."
     
-    if (logEnable) runIn(900,logsOff)
-    
+    if (logEnable) runIn(900,logsOff) 
+    unschedule()    
     updateOverrideSwitch("on")
     
     log.info "hub startup: connecting to mqtt in ${connectDelay} seconds"
     runIn(connectDelay.toInteger(), connect)
     
-    schedule("0/10 * * * * ?", healthCheck)
+    schedule("0/${settings.healthCheckInterval.toInteger()} * * * * ?", healthCheck)
 }
 
 def parse(String description) {
@@ -133,19 +138,16 @@ def parse(String description) {
     topic = topic.substring(topic.lastIndexOf("/") + 1)
     
     payload = interfaces.mqtt.parseMessage(description).payload
+    payloadJson = parseJson(payload)
     
     if (logEnable) log.debug "Topic: ${topic}"
     if (logEnable) log.debug "Payload: ${payload}"
+    if (logEnable) log.debug "payloadJson: ${payloadJson}"
     
-    def payloadJson = parseJson(payload)
-    if (logEnable) log.debug "parse: payloadJson " + payloadJson
-    
-    payloadJson.each { beacon ->
-        if (logEnable) log.debug "mac: ${beacon.mac}"
-        if (beacon?.type) {
-            state.lastHealthCheck = now()
-        }
-        else {
+    if (topic == "status") {
+        payloadJson.each { beacon ->
+            if (logEnable) log.debug "mac: ${beacon.mac}"
+
             def macDNI = "ble:" + beacon.mac
             def macChild = getChildDevice(macDNI)
             if (macChild == null) {
@@ -156,11 +158,17 @@ def parse(String description) {
             if (logEnable) log.debug "parse: updating presence sensor data for " + macDNI
             macChild.parse(beacon.rssi)
         }
+    
+        if (!disableLastUpdated) {
+            if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
+            sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
+        }
     }
     
-    if (!disableLastUpdated) {
-        if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
-        sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
+    if (topic == "response") {
+        if (payloadJson.code == 200 && payloadJson.message == "success" && payloadJson.requestId == state.lastHealthCheck.toString()) {
+            processHealthCheck()
+        }
     }
 }
 
@@ -170,8 +178,8 @@ def publishMsg(String s) {
     if (settings?.retained==null) settings?.retained=false
     if (settings?.QOS==null) setting?.QOS="1"
     
-    if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
-    interfaces.mqtt.publish(settings?.topicPub, s, settings?.QOS.toInteger(), settings?.retained)
+    if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicActionPublish} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
+    interfaces.mqtt.publish(settings?.topicActionPublish, s, settings?.QOS.toInteger(), settings?.retained)
 }
 
 def connect() {
@@ -231,7 +239,8 @@ void mqttClientStatus(String message) {
 void connectionEstablished() {
     if (logEnable) log.debug "connectionEstablished()..."
     
-    interfaces.mqtt.subscribe(settings?.topicSub)  
+    interfaces.mqtt.subscribe(settings?.topicStatusSub)
+    interfaces.mqtt.subscribe(settings?.topicActionResponseSub)
     sendEvent(name: "connection", value: "connected")    
     runIn(overrideEnableDelay.toInteger(), updateOverrideSwitch, [data: "off"])
 }
@@ -266,10 +275,19 @@ def removeChildDevices() {
 def healthCheck() {
     if (logEnable) log.debug "healthCheck()..."
 
-    def timeSinceLastHealthCheck = (now() - state.lastHealthCheck ?: 0) / 1000
+    state.lastHealthCheck = now()
+    def actionJson = '{"action": "heartBeat","requestId": "' + state.lastHealthCheck +'"}'
+    publishMsg(actionJson)
+}
+
+def processHealthCheck() {
+    if (logEnable) log.debug "processHealthCheck()..."
+
+    def timeDiff = (now() - state.lastHealthCheck ?: 0) / 1000
+    if (logEnable) log.debug "timeDiff: ${timeDiff}, healthCheckInterval: ${settings?.healthCheckInterval.toInteger()}"
     
-    if (timeSinceLastHealthCheck > 10) {
-        log.warn "Not receiving health check from BLE Gateway"
+    if (timeDiff > settings?.healthCheckInterval.toInteger()) {
+        log.warn "Did not receive heartbeat response from BLE Gateway (timeDiff = ${timeDiff})"
         updateOverrideSwitch("on")
     }
     else {
