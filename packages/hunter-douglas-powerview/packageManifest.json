@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "2.5.3",
+  "version": "2.5.4",
   "minimumHEVersion": "0.0",
   "dateReleased": "2022-02-16",
-  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.5.3\nPowerview Shade Driver\n * Allow open state to be >= 99 since Hunter Douglas app uses 0-99\n * Set tiltPosition in tiltOpen() to 50 if shade supports 180 degree tilt",
+  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.5.4\nPowerview Shade Driver\n * Added tiltClockwise() and tiltCounterClockwise() to allow full close of 180 degree tilt shades\n * Refactored isClosed() and isOpen() to handle open/close state based on shade capabilities",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
-      "version": "2.5.3"
+      "version": "2.5.4"
     }
   ]
 }
