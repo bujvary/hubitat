@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    02/16/2022 v2.5.3 - Modified isOpen() to allow open state to be >= 99 since Hunter Douglas app uses 0-99
+ *                      - Modified tiltOpen() to set tiltPosition to 50 if shade supports 180 degree tilt
  *    02/08/2022 v2.5.2 - Moved timedOut signal out of battery level update so it's detected as long as it's
  *                        present in the JSON response.
  *    01/31/2022 v2.5.1 - Added attribute to indicate that a forced refresh timed out so it can be used in rules
@@ -400,7 +402,10 @@ def tiltOpen() {
     if (logEnable) log.debug "tiltOpen()"
     
     if (supportsTilt()) {
-        parent.setPosition(device, [tiltPosition: 100])
+        if(supportsTilt180())
+            parent.setPosition(device, [tiltPosition: 50])
+        else
+            parent.setPosition(device, [tiltPosition: 100])
     }
 }
 
@@ -562,7 +567,7 @@ def isOpen(level) {
     }
     else {
         if (logEnable) log.debug "Checking shade open state"
-        result = (level == 100) ? true : false
+        result = (level >= 99) ? true : false
     }
     
     if (logEnable) log.debug "isOpen() = ${result}"
@@ -574,4 +579,3 @@ def logsOff() {
     log.warn "Debug logging disabled."
     device.updateSetting("logEnable", [value: "false", type: "bool"])
 }
-
