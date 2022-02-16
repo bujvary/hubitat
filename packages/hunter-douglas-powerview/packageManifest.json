@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2022-02-08",
-  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.5.2\nPowerview Shade Driver\n * Moved timedOut signal out of battery level update so it's detected as long as it's present in the JSON response.",
+  "dateReleased": "2022-02-16",
+  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.5.3\nPowerview Shade Driver\n * Allow open state to be >= 99 since Hunter Douglas app uses 0-99\n * Set tiltPosition in tiltOpen() to 50 if shade supports 180 degree tilt",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
-      "version": "2.5.2"
+      "version": "2.5.3"
     }
   ]
 }
