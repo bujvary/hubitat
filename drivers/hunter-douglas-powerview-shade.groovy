@@ -25,6 +25,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    02/17/2022 v2.5.5 - Reverted logic in isOpen() and isClosed() to how it worked in v2.5.3
+ *                      - Modified isClosed() to allow closed state to be <= 1 to allow for imprecise calibration of shades
  *    02/16/2022 v2.5.4 - Added tiltClockwise() and tiltCounterClockwise() to allow full close of 180 degree tilt shades
  *                      - Refactored isClosed() and isOpen() to handle open/close state based on shade capabilities
  *    02/16/2022 v2.5.3 - Modified isOpen() to allow open state to be >= 99 since Hunter Douglas app uses 0-99
@@ -571,27 +573,17 @@ def getShadeCapabilities() {
 
 def isClosed(level) {
     if (logEnable) log.debug "isClosed()"
-
-    def shadeCapabilities = getShadeCapabilities()
     def result
 
-    switch (shadeCapabilities) {
-        case 2:    // Bottom Up Tilt 180
-        case 4:    // Vertical Tilt 180
-        case 5:    // Tilt Only 180
-            if (logEnable) log.debug "Checking 180 degree tilt shade closed state"
-            result = (level == 0 || level >= 99) ? true : false
-            break
-        case 7:    // Top Down Bottom Up
-            if (logEnable) log.debug "Checking TB/BU shade closed state"
-            result = (device.currentValue('bottomPosition', true) == 0 && device.currentValue('topPosition', true) == 0) ? true : false
-            break
-        default:
-            if (logEnable) log.debug "Checking shade closed state" 
-            result = (level == 0) ? true : false
-            break
+    if (getShadeCapabilities() == 7) {
+        if (logEnable) log.debug "Checking TB/BU shade closed state"
+        result = (device.currentValue('bottomPosition', true) == 0 && device.currentValue('topPosition', true) == 0) ? true : false
     }
-
+    else {
+        if (logEnable) log.debug "Checking shade closed state"
+        result = (level <= 1) ? true : false
+    }
+    
     if (logEnable) log.debug "isClosed() = ${result}"
     
     return result
@@ -599,25 +591,15 @@ def isClosed(level) {
 
 def isOpen(level) {
     if (logEnable) log.debug "isOpen()"
-    
-    def shadeCapabilities = getShadeCapabilities()
     def result
 
-    switch (shadeCapabilities) {
-        case 2:    // Bottom Up Tilt 180
-        case 4:    // Vertical Tilt 180
-        case 5:    // Tilt Only 180
-            if (logEnable) log.debug "Checking 180 degree tilt shade open state"
-            result = (level > 0 && level < 99) ? true : false
-            break
-        case 7:    // Top Down Bottom Up
-            if (logEnable) log.debug "Checking TB/BU shade open state"
-            result = (device.currentValue('bottomPosition', true) == 100 && device.currentValue('topPosition', true) == 0) ? true : false
-            break
-        default:
-            if (logEnable) log.debug "Checking shade open state"
-            result = (level >= 99) ? true : false
-            break
+    if (getShadeCapabilities() == 7) {
+        if (logEnable) log.debug "Checking TB/BU shade open state"
+        result = (device.currentValue('bottomPosition', true) == 100 && device.currentValue('topPosition', true) == 0) ? true : false
+    }
+    else {
+        if (logEnable) log.debug "Checking shade open state"
+        result = (level >= 99) ? true : false
     }
     
     if (logEnable) log.debug "isOpen() = ${result}"
