@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.3 - Refactored health check logic once again to handle vehicle presence state switch properly
  *  1.3.2 - Refactored health check logic again to handle vehicle presence state switch properly
  *  1.3.1 - Refactored health check logic
  *  1.3.0 - Added health check to determine if BLE Gateway is alive
@@ -123,6 +124,7 @@ def initialize() {
     if (logEnable) runIn(900,logsOff) 
     unschedule()    
     updateOverrideSwitch("on")
+    state.gatewayIsAlive = false
     
     log.info "hub startup: connecting to mqtt in ${connectDelay} seconds"
     runIn(connectDelay.toInteger(), connect)
@@ -276,21 +278,23 @@ def removeChildDevices() {
 def healthCheck() {
     if (logEnable) log.debug "healthCheck()..."
 
-    def timeDiff = (now() - state.lastHealthCheck ?: 0) / 1000
-    if (logEnable) log.debug "timeDiff: ${timeDiff}, healthCheckInterval: ${settings?.healthCheckInterval.toInteger()}"
-        if (timeDiff > settings?.healthCheckInterval.toInteger()) {
+    if (state.gatewayIsAlive == false) {
+        def timeDiff = (now() - state.lastHealthCheck ?: 0) / 1000
         log.warn "Did not receive heartbeat response from BLE Gateway (timeDiff = ${timeDiff})"
         updateOverrideSwitch("on")
     }
-    
-    state.lastHealthCheck = now()
-    def actionJson = '{"action": "heartBeat","requestId": "' + state.lastHealthCheck +'"}'
-    publishMsg(actionJson)
+    else {
+        state.gatewayIsAlive = false
+        state.lastHealthCheck = now()
+        def actionJson = '{"action": "heartBeat","requestId": "' + state.lastHealthCheck +'"}'
+        publishMsg(actionJson)
+    }
 }
 
 def processHealthCheck() {
     if (logEnable) log.debug "processHealthCheck()..."
-    
+
+    state.gatewayIsAlive = true
     updateOverrideSwitch("off")
 }
 
