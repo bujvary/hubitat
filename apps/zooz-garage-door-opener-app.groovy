@@ -1,10 +1,13 @@
 /*
- *  Zooz Garage Door Opener App v2.3	(Apps Code)
+ *  Zooz Garage Door Opener App v2.4	(Apps Code)
  *
  *
  * WARNING: Using a homemade garage door opener can be dangerous so use this code at your own risk.
  *
  *  Changelog:
+ *    2.4 (02/25/2022) Brian Ujvary
+ *      - Add calls to unschedule() for when it has been detected that the door started moving
+ *
  *    2.3 (08/30/2021) Brian Ujvary
  *      - Fixed bug where ope contact would cause "failed to close" message
  *
@@ -417,6 +420,7 @@ void openContactEventHandler(evt) {
     else if (evt.value == "open" && doorStatus == "closing") {
         logDebug "${settings?.closedContactSensor?.displayName} detected that ${childDoorOpener?.displayName} is closing"
         sendDoorEvents("closed", "closing")
+        unschedule()
         runIn(operatingDurationSetting, checkDoorStatus)
     }
     else {
@@ -446,6 +450,7 @@ void closedContactEventHandler(evt) {
     else if (evt.value == "open" && doorStatus == "opening") {
         logDebug "${settings?.closedContactSensor?.displayName} detected that ${childDoorOpener?.displayName} is opening"
         sendDoorEvents("open", "opening")
+        unschedule()
         runIn(operatingDurationSetting, checkDoorStatus)
     }
     else {
