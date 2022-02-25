@@ -1,9 +1,9 @@
 {
 	"packageName": "Zooz Garage Door Opener",
-	"version": "2.3.0",
+	"version": "2.4.0",
 	"minimumHEVersion": "1.2",
 	"author": "Kevin LaFramboise/Brian Ujvary",
-	"dateReleased": "2021-08-30",
+	"dateReleased": "2022-02-25",
 	"documentationLink": "https://github.com/krlaframboise/Hubitat",
 	"apps" : [
 		{
@@ -23,7 +23,7 @@
 			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/zooz-garage-door-opener-app.groovy",
 			"required": true,
 			"oauth": false,
-			"version": "2.3"
+			"version": "2.4"
 		}
 	],
 	"drivers" : [
