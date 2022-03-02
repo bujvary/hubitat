@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.4 - Fixed logic in healthCheck() to send health check message every time called
  *  1.3.3 - Refactored health check logic once again to handle vehicle presence state switch properly
  *  1.3.2 - Refactored health check logic again to handle vehicle presence state switch properly
  *  1.3.1 - Refactored health check logic
@@ -179,7 +180,7 @@ def publishMsg(String s) {
     if (logEnable) log.debug "publishMsg()..."
     
     if (settings?.retained==null) settings?.retained=false
-    if (settings?.QOS==null) setting?.QOS="1"
+    if (settings?.QOS==null) settings?.QOS="1"
     
     if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicActionPublish} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
     interfaces.mqtt.publish(settings?.topicActionPublish, s, settings?.QOS.toInteger(), settings?.retained)
@@ -285,10 +286,11 @@ def healthCheck() {
     }
     else {
         state.gatewayIsAlive = false
-        state.lastHealthCheck = now()
-        def actionJson = '{"action": "heartBeat","requestId": "' + state.lastHealthCheck +'"}'
-        publishMsg(actionJson)
     }
+    
+    state.lastHealthCheck = now()
+    def actionJson = '{"action": "heartBeat","requestId": "' + state.lastHealthCheck +'"}'
+    publishMsg(actionJson)
 }
 
 def processHealthCheck() {
