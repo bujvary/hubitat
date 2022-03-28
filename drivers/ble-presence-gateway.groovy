@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.5 - Added delay in processHealthCheck() to turn OverrideSwitch off to prevent accidental opening of garage door
  *  1.3.4 - Fixed logic in healthCheck() to send health check message every time called
  *  1.3.3 - Refactored health check logic once again to handle vehicle presence state switch properly
  *  1.3.2 - Refactored health check logic again to handle vehicle presence state switch properly
@@ -297,7 +298,8 @@ def processHealthCheck() {
     if (logEnable) log.debug "processHealthCheck()..."
 
     state.gatewayIsAlive = true
-    updateOverrideSwitch("off")
+
+    runIn(overrideEnableDelay.toInteger(), updateOverrideSwitch, [data: "off"])
 }
 
 def updateOverrideSwitch(value) {
