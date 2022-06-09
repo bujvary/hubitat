@@ -16,7 +16,7 @@
 
 
 definition(
-    name: "Auto Shades",
+    name: "Auto Shades Plus",
     namespace: "joelwetzel",
     author: "Joel Wetzel",
     description: "Automatically opens and closes smart blinds and shades, depending on the values of light sensors.",
