@@ -118,12 +118,12 @@ def updated() {
 def initialize() {
     log.info "initialize()"
     
-	subscribe(wrappedShade, "windowShade", windowShadeHandler)
+    subscribe(wrappedShade, "windowShade", windowShadeHandler)
     
     subscribe(lightSensor, "illuminance", illuminanceHandler)
 
-	// Generate a label for this child app
-	app.updateLabel("Auto Shades - ${wrappedShade.displayName}")
+    // Generate a label for this child app
+    app.updateLabel("Auto Shades Plus - ${wrappedShade.displayName}")
     
     use (groovy.time.TimeCategory) {
         // Make it 24 hours ago so that Autoshades can start responding right away.
