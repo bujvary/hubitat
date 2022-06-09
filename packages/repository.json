@@ -3,6 +3,13 @@
   "gitHubUrl": "https://github.com/bujvary/hubitat",
   "packages": [
     {
+      "name": "Auto Shades Plus",
+      "category": "Control",
+      "tags": [ "Control", "Window Coverings" ],
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/autoshades-plus/packageManifest.json",
+      "description": "Automatically control smartblinds and shades, by integrating with a light sensor."
+    },
+    {
       "name": "Away Lighting",
       "category": "Control",
       "tags": [ "Control", "Automations & Groups" ],
