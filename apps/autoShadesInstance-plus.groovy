@@ -26,7 +26,7 @@ definition(
     name: "Auto Shades Plus Instance",
     namespace: "joelwetzel",
     author: "Joel Wetzel",
-    description: "Child app that is instantiated by the Auto Shades app.",
+    description: "Child app that is instantiated by the Auto Shades Plus app.",
     category: "Convenience",
     iconUrl: "",
     iconX2Url: "",
