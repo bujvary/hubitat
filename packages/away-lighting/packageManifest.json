@@ -8,14 +8,13 @@
 	"releaseNotes": "Control lights when a virutal Away switch is turned on/off",
 	"apps" : [
 		{
-      "id" : "7878d986-1fdf-4ca8-97d1-3044df9eb361",
+			"id" : "7878d986-1fdf-4ca8-97d1-3044df9eb361",
 			"name": "Away Lighting",
 			"namespace": "bujvary",
 			"location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/away-lighting.groovy",
 			"required": true,
 			"oauth": false,
-			"version": "1.0",
-			"primary": true
+			"version": "1.0"
 		}
 	]
 }
