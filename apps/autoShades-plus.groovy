@@ -88,7 +88,7 @@ def mainPage() {
 				paragraph "Auto Shades can automatically open and close smart blinds and shades, depending on the values of light sensors."
 			}
   			section("<b>Shades:</b>") {
-				app(name: "anyOpenApp", appName: "Auto Shades Instance", namespace: "joelwetzel", title: "<b>Automate a new shade</b>", multiple: true)
+				app(name: "anyOpenApp", appName: "Auto Shades Plus Instance", namespace: "joelwetzel", title: "<b>Automate a new shade</b>", multiple: true)
 			}
 
 			display()
