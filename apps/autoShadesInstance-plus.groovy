@@ -22,13 +22,13 @@ import groovy.json.*
 import groovy.time.*
 
 definition(
-	parent: "joelwetzel:Auto Shades",
+    parent: "joelwetzel:Auto Shades Plus",
     name: "Auto Shades Plus Instance",
     namespace: "joelwetzel",
     author: "Joel Wetzel",
     description: "Child app that is instantiated by the Auto Shades app.",
     category: "Convenience",
-	iconUrl: "",
+    iconUrl: "",
     iconX2Url: "",
     iconX3Url: "")
 
