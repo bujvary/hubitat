@@ -23,7 +23,7 @@ import groovy.time.*
 
 definition(
 	parent: "joelwetzel:Auto Shades",
-    name: "Auto Shades Instance",
+    name: "Auto Shades Plus Instance",
     namespace: "joelwetzel",
     author: "Joel Wetzel",
     description: "Child app that is instantiated by the Auto Shades app.",
