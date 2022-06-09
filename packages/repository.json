@@ -3,6 +3,13 @@
   "gitHubUrl": "https://github.com/bujvary/hubitat",
   "packages": [
     {
+      "name": "Away Lighting",
+      "category": "Control",
+      "tags": [ "Control", "Automations & Groups" ],
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/away-lighting/packageManifest.json",
+      "description": "Control lights via a virtual Away switch"
+    },
+    {
       "name": "BLE Presence Gateway",
       "category": "Control",
       "tags": [ "Presence & Location" ],
