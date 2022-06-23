@@ -1,5 +1,5 @@
 /**
- *  Auto Shades Instance v1.1
+ *  Auto Shades Instance v1.2
  *
  *  Copyright 2019 Joel Wetzel
  *
@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    06/28/2022 v1.2 - Added Override Switch to disable Auto Shades
  *    06/09/2022 v1.1 - Fixed issue with lastManualClose not being initialized.
  *                      Added checkIlluminance() which will run after auto/manual delay value
  *                      to see if the shade needs to open or close.
@@ -49,6 +50,14 @@ preferences {
 	            type:				"capability.illuminanceMeasurement",
 	            title:				"Light Sensor",
 	            description:		"Select the light sensor that will determine whether to open/close the shade.",
+	            multiple:			false,
+	            required:			true
+            )
+            input (
+	            name:				"overrideSwitch",
+	            type:				"capability.switch",
+	            title:				"Override Switch",
+	            description:		"Select the switch that will disable Auto Shades when turned on.",
 	            multiple:			false,
 	            required:			true
             )
@@ -177,6 +186,10 @@ def illuminanceHandler(e) {
     
     unschedule(checkIlluminance)
     
+    if (settings?.overrideSwitch?.currentValue("switch") == "on") {
+        disableAutoShades = true
+    }
+    
     use (groovy.time.TimeCategory) {
         minutesSinceLastManualClose = (new Date() - toDateTime(state.lastManualClose)).minutes + (new Date() - toDateTime(state.lastManualClose)).hours*60 + (new Date() - toDateTime(state.lastManualClose)).days*60*24
         minutesSinceLastAutoShade = (new Date() - toDateTime(state.lastAutoShade)).minutes + (new Date() - toDateTime(state.lastAutoShade)).hours*60 + (new Date() - toDateTime(state.lastAutoShade)).days*60*24
@@ -208,7 +221,7 @@ def illuminanceHandler(e) {
         log "Running checkIlluminance() in ${runInSeconds} seconds to see if shades need to be opened or closed"
     }
     
-    //log "disableAutoShades: ${disableAutoShades}"
+    log "disableAutoShades: ${disableAutoShades}"
     
     if (!disableAutoShades) {
         log "currentShadeValue: ${currentShadeValue}"
