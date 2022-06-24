@@ -15,7 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
- *    01/25/2022 v2.6.0 - Reworked device discovery so it's done serially to prevent overloading the hub
+ *    06/24/2022 v2.6.1 - Added option to skip discovery of repeater devices
+ *    06/23/2022 v2.6.0 - Reworked device discovery so it's done serially to prevent overloading the hub
  *                      - Added additional debugging
  *    01/25/2022 v2.5.0 - Added option to control forced refresh polling
  *                      - Added option for shade position polling interval
@@ -115,6 +116,7 @@ def mainPage() {
                     paragraph "${htmlTab}Name: ${state.fwName}</br>${htmlTab}Revision: ${state.fwRevision}</br>${htmlTab}SubRevision: ${state.fwSubRevision}</br>${htmlTab}Build: ${state.fwBuild}"
                 }
                 section("<big><b>Devices & Scenes</b></big>") {
+                    input("skipRepeaterDiscovery", "bool", title: "Skip discovery of repeater devices", required: false, defaultValue: false)
                     def description = (atomicState?.deviceData) ? "Click to modify" : "Click to configure";
                     href "devicesPage", title: "Manage Devices", description: description, state: "complete"
                     atomicState?.loadingDevices = false
@@ -160,8 +162,12 @@ def devicesPage() {
             getShades()
         else if (atomicState?.gettingScenes)
             getScenes()
-        else if (atomicState?.gettingRepeaters)
-            getRepeaters()
+        else if (atomicState?.gettingRepeaters) {
+            if(settings?.skipRepeaterDiscovery)
+                atomicState?.gettingRepeaters = false
+            else
+                getRepeaters()
+        }
     } else {
         atomicState?.loadingDevices = true
         atomicState?.gettingRooms = true
