@@ -25,6 +25,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    06/23/2022 v2.6.0 - Version number update only
  *    02/17/2022 v2.5.5 - Reverted logic in isOpen() and isClosed() to how it worked in v2.5.3
  *                      - Modified isClosed() to allow closed state to be <= 1 to allow for imprecise calibration of shades
  *    02/16/2022 v2.5.4 - Added tiltClockwise() and tiltCounterClockwise() to allow full close of 180 degree tilt shades
