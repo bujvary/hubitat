@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "2.6.o",
+  "version": "2.6.1",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2022-06-23",
-  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.6.0\nPowerview App\n * Reworked device discovery so it's done serially to prevent overloading the hub",
+  "dateReleased": "2022-06-24",
+  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.6.1\nPowerview App\n * Added option to skip discovery of repeater devices",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
@@ -13,7 +13,7 @@
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview.groovy",
       "required": true,
       "oauth": false,
-      "version": "2.6.0"
+      "version": "2.6.1"
     }
   ],
   "drivers": [
