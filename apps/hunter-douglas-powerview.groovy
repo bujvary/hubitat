@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    01/25/2022 v2.6.0 - Reworked device discovery so it's done serially to prevent overloading the hub
+ *                      - Added additional debugging
  *    01/25/2022 v2.5.0 - Added option to control forced refresh polling
  *                      - Added option for shade position polling interval
  *                      - Added option for battery level polling interval
@@ -146,18 +148,30 @@ def devicesPage() {
     ]
 
     if (logEnable) log.debug "atomicState?.loadingDevices = ${atomicState?.loadingDevices}"
-    if (!atomicState?.loadingDevices) {
+    if (logEnable) log.debug "atomicState?.gettingRooms = ${atomicState?.gettingRooms}"
+    if (logEnable) log.debug "atomicState?.gettingShades = ${atomicState?.gettingShades}"
+    if (logEnable) log.debug "atomicState?.gettingScenes = ${atomicState?.gettingScenes}"
+    if (logEnable) log.debug "atomicState?.gettingRepeaters = ${atomicState?.gettingRepeaters}"
+    
+    if (atomicState?.loadingDevices) {
+        if (atomicState?.gettingRooms)
+           getRooms()
+        else if (atomicState?.gettingShades)
+            getShades()
+        else if (atomicState?.gettingScenes)
+            getScenes()
+        else if (atomicState?.gettingRepeaters)
+            getRepeaters()
+    } else {
         atomicState?.loadingDevices = true
         atomicState?.gettingRooms = true
-        atomicState?.gettingShades = true
-        atomicState?.gettingScenes = true
-        atomicState?.gettingRepeaters = true
-        
-        getDevices()
+        atomicState?.gettingShades = false
+        atomicState?.gettingScenes = false
+        atomicState?.gettingRepeaters = false
     }
-
+    
     if (logEnable) log.debug "atomicState?.deviceData = ${atomicState?.deviceData}"
-    //if (!atomicState?.deviceData?.shades || !atomicState?.deviceData?.scenes || !atomicState?.deviceData?.rooms || !atomicState?.deviceData?.repeaters) {
+
     if (atomicState?.gettingShades || atomicState?.gettingScenes || atomicState?.gettingRooms || atomicState?.gettingRepeaters) {
         pageProperties["refreshInterval"] = 1
         return dynamicPage(pageProperties) {
@@ -508,12 +522,6 @@ def pollRepeaterDelayed(data) {
 /*
  * Device management
  */
-def getDevices() {
-    getRooms()
-    getShades()
-    getScenes()
-    getRepeaters()
-}
 
 def getRoomLabel(roomName) {
     return "${roomName} Blinds"
@@ -687,6 +695,7 @@ void firmwareVerCallback(hubitat.device.HubResponse hubResponse) {
 // ROOMS
 
 def getRooms() {
+    if (logEnable) log.debug "Entered getRooms()..."
     callPowerView("rooms", roomsCallback)
 }
 
@@ -733,11 +742,13 @@ void roomsCallback(hubitat.device.HubResponse hubResponse) {
     updateDeviceDataState([rooms: rooms])
     
     atomicState?.gettingRooms = false
+    atomicState?.gettingShades = true
 }
 
 // SCENES
 
 def getScenes() {
+    if (logEnable) log.debug "Entered getScenes()..."
     callPowerView("scenes", scenesCallback)
 }
 
@@ -769,6 +780,7 @@ void scenesCallback(hubitat.device.HubResponse hubResponse) {
     updateDeviceDataState([scenes: scenes])
     
     atomicState?.gettingScenes = false
+    atomicState?.gettingRepeaters = true
 }
 
 def triggerSceneCallback(hubitat.device.HubResponse hubResponse) {
@@ -784,6 +796,7 @@ def triggerSceneCallback(hubitat.device.HubResponse hubResponse) {
 // SHADES 
 
 def getShades() {
+    if (logEnable) log.debug "Entered getShades()..."
     callPowerView("shades", shadesCallback)
 }
 
@@ -932,11 +945,13 @@ void shadesCallback(hubitat.device.HubResponse hubResponse) {
     updateDeviceDataState([shades: shades])
     
     atomicState?.gettingShades = false
+    atomicState?.gettingScenes = true
 }
 
 // REPEATERS
 
 def getRepeaters() {
+    if (logEnable) log.debug "Entered getRepeaters()..."
     callPowerView("repeaters", repeatersCallback)
 }
 
