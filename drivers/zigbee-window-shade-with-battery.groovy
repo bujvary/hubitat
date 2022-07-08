@@ -14,18 +14,24 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
- *    07/04/2021 v1.9 - Removed hardcoded close() to setLevel(0)
- *    07/01/2021 v1.8 - Added definitions for off() and on(), hardcoded close() to setLevel(0)
- *    06/30/2021 v1.7 - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
- *    06/07/2021 v1.6 - Updated capabilities to match Hubitat documentation
- *    04/28/2021 v1.5 - Added scheduled job to get battery status once an hour
- *    04/25/2021 v1.4 - Correct description text for battery level update
- *    04/23/2021 v1.3 - Added readAttribute for battery level to refresh()
- *    03/30/2021 v1.2 - Added preference and logic to set closed level of window shade
- *    03/30/2021 v1.1 - Removed descTextOutput preference and changed all logging to log on debugOutput
- *                    - Added preference and logic to invert the SetLevel level percentage if set to
+ *    07/08/2022 v1.10 - Changed logsOff to run in 15 minutes
+ *                     - Reverted to setLevel() in open()/close()
+ *                     - Modified setLevel() to set level attribute to user requested level then use that
+ *                       with current position to prevent toggling between opening/closing and partially
+ *                       open states
+ *                     - Adjusted battery level calculation to be more accurate
+ *    07/04/2021 v1.9  - Removed hardcoded close() to setLevel(0)
+ *    07/01/2021 v1.8  - Added definitions for off() and on(), hardcoded close() to setLevel(0)
+ *    06/30/2021 v1.7  - Fixed Hubitat Dashboard tile colors update when open/closed/partially open
+ *    06/07/2021 v1.6  - Updated capabilities to match Hubitat documentation
+ *    04/28/2021 v1.5  - Added scheduled job to get battery status once an hour
+ *    04/25/2021 v1.4  - Correct description text for battery level update
+ *    04/23/2021 v1.3  - Added readAttribute for battery level to refresh()
+ *    03/30/2021 v1.2  - Added preference and logic to set closed level of window shade
+ *    03/30/2021 v1.1  - Removed descTextOutput preference and changed all logging to log on debugOutput
+ *                     - Added preference and logic to invert the SetLevel level percentage if set to
  *                      handle shades that report the opposite of the percentage open
- *    03/28/2021 v1.0 - Initial release
+ *    03/28/2021 v1.0  - Initial release
  */
 import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
@@ -98,7 +104,7 @@ def uninstalled() {
 def initialize() {
 	if (debugOutput) log.debug "initialize"
 	unschedule()
-	if (debugOutput) runIn(1800,logsOff)
+	if (debugOutput) runIn(900,logsOff)
 	schedule("0 0 0/1 1/1 * ? *", refreshBattery)
 }
 
@@ -110,8 +116,9 @@ def parse(String description) {
 		if (isBindingTableMessage(description)) {
 			parseBindingTableMessage(description)
 		} else if (supportsLiftPercentage() && descMap?.clusterInt == CLUSTER_WINDOW_COVERING && descMap.value) {
-			if (debugOutput) log.debug "attr: ${descMap?.attrInt}, value: ${descMap?.value}, descValue: ${Integer.parseInt(descMap.value, 16)}, ${device.getDataValue("model")}"
-			List<Map> descMaps = collectAttributes(descMap)
+			if (debugOutput) log.debug "attr: ${descMap?.attrInt}, value: ${descMap?.value}, descValue: ${Integer.parseInt(descMap.value, 16)}, model: ${device.getDataValue("model")}"
+			    List<Map> descMaps = collectAttributes(descMap)
+            
 			def liftmap = descMaps.find { it.attrInt == ATTRIBUTE_POSITION_LIFT }
 			if (liftmap && liftmap.value) {
 				def newLevel = zigbee.convertHexToInt(liftmap.value)
@@ -133,12 +140,13 @@ def parse(String description) {
 }
 
 def levelEventHandler(currentLevel) {
-	def lastLevel = device.currentValue("level")
-	if (debugOutput) log.debug "levelEventHandle - currentLevel: ${currentLevel} lastLevel: ${lastLevel}"
+	def lastLevel = device.currentValue("position")
+    
+	if (debugOutput) log.debug "levelEventHandle() currentLevel: ${currentLevel}, lastLevel: ${lastLevel}"
+    
 	if (lastLevel == "undefined" || currentLevel == lastLevel) { //Ignore invalid reports
 		if (debugOutput) log.debug "Ignore invalid reports"
 	} else {
-		sendEvent(name: "level", value: currentLevel)
         sendEvent(name: "position", value: currentLevel)
 
 		if (lastLevel < currentLevel) {
@@ -152,27 +160,37 @@ def levelEventHandler(currentLevel) {
 }
 
 def updateFinalState() {
-	def level = device.currentValue("level")
-	if (debugOutput) log.debug "updateFinalState: ${level}"
-
-    if (level < closedPosition)
-        level = 0
+	def position = device.currentValue("position")
+    def level = device.currentValue("level")
     
-    if (level > 0 && level < 100) {
-        sendEvent(name: "windowShade", value: "partially open")
-        sendEvent(name: "switch", value: "on")
-    }
-    else {
-        sendEvent(name: "windowShade", value: level == 0 ? "closed" : "open")
-        sendEvent(name: "switch", value: level == 0 ? "off" : "on")
+    if (debugOutput) log.debug "updateFinalState() position: ${position}, level: ${level}"
+
+    if (level == position) {
+        if (position < closedPosition)
+            position = 0
+    
+        if (position > 0 && position < 100) {
+            sendEvent(name: "windowShade", value: "partially open")
+            sendEvent(name: "switch", value: "on")
+        }
+        else {
+            sendEvent(name: "windowShade", value: position == 0 ? "closed" : "open")
+            sendEvent(name: "switch", value: position == 0 ? "off" : "on")
+        }
     }
 }
 
 def batteryPercentageEventHandler(batteryLevel) {
-	if (debugOutput) log.debug "batteryPercentageEventHandler - batteryLevel: ${batteryLevel}"
+	if (debugOutput) log.debug "batteryPercentageEventHandler() batteryLevel: ${batteryLevel}"
+    
 	if (batteryLevel != null) {
+        if (isYooksmartOrYookee()) {
+			batteryLevel = batteryLevel >> 1
+		}
 		batteryLevel = Math.min(100, Math.max(0, batteryLevel))
-        if (debugOutput) log.debug "batteryPercentageEventHandler - batteryLevel: ${batteryLevel}"
+        
+        if (debugOutput) log.debug "batteryPercentageEventHandler() Calculated batteryLevel: ${batteryLevel}"
+        
         descriptionText = "${device.displayName} battery is ${batteryLevel}%"
 		sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: descriptionText])
 	}
@@ -181,15 +199,15 @@ def batteryPercentageEventHandler(batteryLevel) {
 def close() {
 	if (debugOutput) log.info "close()"
 	runIn(5, refresh)
-	//setLevel(0)
-	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
+	setLevel(0)
+	//zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
 }
 
 def open() {
 	if (debugOutput) log.info "open()"
 	runIn(5, refresh)
-	//setLevel(100)
-	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
+	setLevel(100)
+	//zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
 }
 
 def off() {
@@ -203,7 +221,7 @@ def on() {
 }
 
 def setLevel(data, rate = null) {
-	if (debugOutput) log.info "setLevel() level = ${data}"
+	if (debugOutput) log.info "setLevel() level: ${data}"
 	def cmd
 	if (supportsLiftPercentage()) {
 		if (shouldInvertLiftPercentage() || invertSetLevel) {
@@ -211,18 +229,21 @@ def setLevel(data, rate = null) {
 			// inverting that logic is needed here
             if (data < closedPosition)
                 data = closedPosition
-            
-			data = 100 - data
+
+			lift_pct = 100 - data
 		}
-		cmd = zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_GOTO_LIFT_PERCENTAGE, zigbee.convertToHexString(data.intValue(), 2))
+		cmd = zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_GOTO_LIFT_PERCENTAGE, zigbee.convertToHexString(lift_pct.intValue(), 2))
 	} else {
 		cmd = zigbee.command(zigbee.LEVEL_CONTROL_CLUSTER, COMMAND_MOVE_LEVEL_ONOFF, zigbee.convertToHexString(Math.round(data * 255 / 100), 2))
 	}
+    
+    sendEvent(name: "level", value: data)
+    
 	return cmd
 }
 
 def setPosition(value){
-	if (debugOutput) log.info "setPosition() level = ${value}"
+	if (debugOutput) log.info "setPosition() level: ${value}"
 	setLevel(value)
 }
 
@@ -276,6 +297,7 @@ def configure() {
 	// Device-Watch allows 2 check-in misses from device + ping (plus 2 min lag time)
 	if (debugOutput) log.info "configure()"
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
+    
 	if (debugOutput) log.debug "Configuring Reporting and Bindings."
 
 	def cmds
