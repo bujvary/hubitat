@@ -4,7 +4,7 @@
   "version": "0.2",
   "minimumHEVersion": "0.0",
   "dateReleased": "2022-10-04",
-  "releaseNotes": "Hunter Douglas PowerView Gen 3 - Initial release",
+  "releaseNotes": "Hunter Douglas PowerView Gen 3 App\n * Added checks for HTTP status codes in callback functions\n * Changed call to trigger scene from GET to PUT",
   "apps": [
     {
       "id": "b4bffeec-8bb6-453b-b117-1fc0a8807f1e",
