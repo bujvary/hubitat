@@ -15,6 +15,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/04/2022 v0.2 - Added checks for HTTP status codes in callback functions
+ *                    - Changed call to trigger scene from GET to PUT
  *    10/03/2022 v0.1 - Initial release
  *
  */
@@ -57,7 +59,9 @@ def mainPage() {
         install: setupComplete,
         uninstall: atomicState?.installed
     ]
-logEnable=true
+
+    // TO DO: REMOVE THIS LINE WHEN DONE
+    logEnable = true
     
     if (atomicState?.gettingFirmwareVer == null)
         atomicState?.gettingFirmwareVer = true
@@ -72,11 +76,10 @@ logEnable=true
     }
 
     return dynamicPage(pageProperties) {
-        section("<big><b>PowerView Hub</b></big>") {
+        section("<big><b>PowerView Gateway</b></big>") {
             input("powerviewIPAddress", "text", title: "IP Address", defaultValue: "", description: "(ie. 192.168.1.10)", required: true, submitOnChange: true)
         }
        
-        
         if (settings?.powerviewIPAddress) {
             if (atomicState?.gettingFirmwareVer) {
                 section("Getting firmware version...") {
@@ -611,7 +614,7 @@ void roomsCallback(hubitat.device.HubResponse hubResponse) {
             if (logEnable) log.debug "room: ID = ${room.id}, name = ${name}"
         }
     } else {
-        log.error "roomsCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+        log.error "roomsCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
     
     updateDeviceDataState([rooms: rooms])
@@ -633,7 +636,7 @@ def triggerSceneFromDevice(sceneDevice) {
 }
 
 def triggerScene(sceneId) {
-    callPowerView("home/scenes/${sceneId}/activate", triggerSceneCallback)
+    callPowerView("home/scenes/${sceneId}/activate", triggerSceneCallback, null, "PUT")
 }
 
 void scenesCallback(hubitat.device.HubResponse hubResponse) {
@@ -649,7 +652,7 @@ void scenesCallback(hubitat.device.HubResponse hubResponse) {
             if (logEnable) log.debug "scene: ID = ${scene.id}, name = ${name}"
         }
     } else {
-        log.error "scenesCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+        log.error "scenesCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
     
     updateDeviceDataState([scenes: scenes])
@@ -660,10 +663,11 @@ void scenesCallback(hubitat.device.HubResponse hubResponse) {
 def triggerSceneCallback(hubitat.device.HubResponse hubResponse) {
     if (logEnable) log.debug "Entered triggerScenesCallback()..."
 
-    if (hubResponse.status != 200) {
-        log.warn("got unexpected response: status=${hubResponse.status} body=${hubResponse.body}")
-    } else {
+    if (hubResponse.status == 200) {
         runIn(15, pollDevices)
+    }
+    else {
+        log.error "triggerSceneCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
 }
 
@@ -745,11 +749,16 @@ void shadePollCallback(hubitat.device.HubResponse hubResponse) {
     if (logEnable) log.debug "Entered shadePollCallback()..."
     if (logEnable) log.debug "json: ${hubResponse.json}"
 
-    def shade = hubResponse.json
-    def childDevice = getShadeDevice(shade.id)
+    if (hubResponse.status == 200) {
+        def shade = hubResponse.json
+        def childDevice = getShadeDevice(shade.id)
 
-    if (logEnable) log.debug "shadePollCallback for shade id ${shade.id}, calling device ${childDevice}"
-    childDevice.handleEvent(shade)
+        if (logEnable) log.debug "shadePollCallback for shade id ${shade.id}, calling device ${childDevice}"
+            childDevice.handleEvent(shade)
+        }
+    else {
+        log.error "shadePollCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
+    }
 }
 
 def shadesPollCallback(hubitat.device.HubResponse hubResponse) {
@@ -764,7 +773,7 @@ def shadesPollCallback(hubitat.device.HubResponse hubResponse) {
                 childDevice.handleEvent(shade)
         }
     } else {
-        log.error "shadesPollCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+        log.error "shadesPollCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
 }
 
@@ -796,7 +805,7 @@ void shadesCallback(hubitat.device.HubResponse hubResponse) {
             if (logEnable) log.debug "shade: ID = ${shade.id}, name = ${name}"
         }
     } else {
-        log.error "shadesCallback() HTTP Error: ${hubResponse.status}, Headers: ${hubResponse.headers}, Body: ${hubResponse.body}"
+        log.error "shadesCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
     
     updateDeviceDataState([shades: shades])
