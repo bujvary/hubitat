@@ -1,0 +1,45 @@
+{
+  "packageName": "Hunter Douglas Powerview Gen3",
+  "author": "Brian Ujvary",
+  "version": "0.1",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2022-10-03",
+  "releaseNotes": "Hunter Douglas PowerView Gen 3 - Initial release",
+  "apps": [
+    {
+      "id": "b4bffeec-8bb6-453b-b117-1fc0a8807f1e",
+      "name": "Hunter Douglas PowerView Gen3",
+      "namespace": "hdpowerview",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/apps/hunter-douglas-powerview-gen3.groovy",
+      "required": true,
+      "oauth": false,
+      "version": "0.1"
+    }
+  ],
+  "drivers": [
+    {
+      "id": "b0638d8b-d8e4-4bc6-9a90-bb97f6e2fbb8",
+      "name": "Hunter Douglas PowerView Room",
+      "namespace": "hdpowerview",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/drivers/hunter-douglas-powerview-room-gen3.groovy",
+      "required": true,
+      "version": "0.1"
+    },
+    {
+      "id": "59b4db94-aa74-47d9-8b1d-e20f3e80d043",
+      "name": "Hunter Douglas PowerView Scene",
+      "namespace": "hdpowerview",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/drivers/hunter-douglas-powerview-scene-gen3.groovy",
+      "required": true,
+      "version": "0.1"
+    },
+    {
+      "id": "40573420-fe45-4faa-8eef-843c2610caf3",
+      "name": "Hunter Douglas PowerView Shade",
+      "namespace": "hdpowerview",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/drivers/hunter-douglas-powerview-shade-gen3.groovy",
+      "required": true,
+      "version": "0.1"
+    }
+  ]
+}
