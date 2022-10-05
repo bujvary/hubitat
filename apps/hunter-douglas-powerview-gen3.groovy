@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/04/2022 v0.3 - Removed hardcoded testing port for HD Powerview URL
  *    10/04/2022 v0.2 - Added checks for HTTP status codes in callback functions
  *                    - Changed call to trigger scene from GET to PUT
  *    10/03/2022 v0.1 - Initial release
@@ -828,9 +829,7 @@ def sendBatteryLowNotification(shadeDevice) {
 // CORE API
 
 def callPowerView(String path, callback, Map query = null, String method = "GET", String body = null) {
-    //def host = "${settings?.powerviewIPAddress}:80"
-    def host = "${settings?.powerviewIPAddress}:3001"
-
+    def host = "${settings?.powerviewIPAddress}:80"
     def fullPath = "/${path}"
     
     if (logEnable) log.debug "callPowerView: url = 'http://${host}${fullPath}', method = '${method}', body = '${body}', query = ${query}, callback = ${callback}"
