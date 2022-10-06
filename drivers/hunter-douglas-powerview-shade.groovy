@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/06/2022 v2.6.4 - Added logic to isOpen() and isClosed() to check state of Top-Down shades
  *    10/06/2022 v2.6.3 - Reversed min/max values and fixed posKind for Top-Down shades in open() and close()
  *                      - Initialized state.capabilities to -1 if not in shade data from hub
  *                      - Added note to "Shade capability information" about state.capabilities being -1
@@ -579,8 +580,13 @@ def getShadeCapabilities() {
 def isClosed(level) {
     if (logEnable) log.debug "isClosed()"
     def result
-
-    if (getShadeCapabilities() == 7) {
+    def shadeCapabilities = getShadeCapabilities()
+    
+    if (shadeCapabilities == 6) {
+        if (logEnable) log.debug "Checking Top-Down shade closed state"
+        result = (level >= 99) ? true : false        
+    }
+    else if (shadeCapabilities == 7) {
         if (logEnable) log.debug "Checking TB/BU shade closed state"
         result = (device.currentValue('bottomPosition', true) == 0 && device.currentValue('topPosition', true) == 0) ? true : false
     }
@@ -597,8 +603,13 @@ def isClosed(level) {
 def isOpen(level) {
     if (logEnable) log.debug "isOpen()"
     def result
-
-    if (getShadeCapabilities() == 7) {
+    def shadeCapabilities = getShadeCapabilities()
+    
+    if (shadeCapabilities == 6) {
+        if (logEnable) log.debug "Checking Top-Down shade open state"
+        result = (level <= 1) ? true : false        
+    }
+    else if (shadeCapabilities == 7) {
         if (logEnable) log.debug "Checking TB/BU shade open state"
         result = (device.currentValue('bottomPosition', true) == 100 && device.currentValue('topPosition', true) == 0) ? true : false
     }
