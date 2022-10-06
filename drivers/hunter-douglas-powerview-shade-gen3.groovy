@@ -25,6 +25,11 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/06/2022 v0.4 - Fixed position type for Top-Down shades in open() and close()
+ *                    - Initialized state.capabilities to -1 if not in shade data from gateway
+ *                    - Added note to "Shade capability information" about state.capabilities being -1
+ *                    - Fixed checks in handleEvent() for missing values
+ *                    - Added logic to isOpen() and isClosed() to check state of Top-Down shades
  *    10/04/2022 v0.3 - Version number update only
  *    10/04/2022 v0.2 - Version number update only
  *    10/03/2022 v0.1 - Initial release
@@ -173,7 +178,9 @@ def initialize() {
     <td class="tg-0lax">Duolite lift operation plus 180° tilt operation. Includes Silhouette Halo Duolite.</br>&nbsp;&bull;&nbsp;Uses the “primary,” “secondary,” and “tilt” control types</td>
   </tr>
 </tbody>
-</table>'''
+</table>
+</br>
+Note: If the shade capabilities value is -1 then you will need to set the Shade Capability Override value in the Preferences section.'''
     }
 }
 
@@ -189,9 +196,10 @@ public handleEvent(shadeJson) {
     if (logEnable) log.debug "handleEvent: shadeJson = ${shadeJson}"
     def now = now()
     
-    if(settings?.railForLevelState==null) settings?.railForLevelState=0
+    if(settings?.railForLevelState==null)
+        settings?.railForLevelState=0
     
-    if (shadeJson?.positions) {
+    if (shadeJson?.positions != null) {
         updatePosition(shadeJson.positions)
     }
 	
@@ -201,9 +209,12 @@ public handleEvent(shadeJson) {
         parent.sendBatteryLowNotification(device)
     }
     
-    state.capabilities = shadeJson?.capabilities;
+    if (shadeJson?.capabilities != null)
+        state.capabilities = shadeJson.capabilities;
+    else
+        state.capabilities = -1
     
-    if (shadeJson?.firmware) {
+    if (shadeJson?.firmware != null) {
         device.updateDataValue("firmwareVersion", "${shadeJson.firmware.revision}.${shadeJson.firmware.subRevision}.${shadeJson.firmware.build}")
     }
     
@@ -303,7 +314,7 @@ def open() {
             log.info "open() shade supports tilt only"
             break
         case 6:    // Top Down
-            parent.setPosition(device, [secondary: 0])
+            parent.setPosition(device, [primary: 0])
             break
         case 7:    // Top Down Bottom Up
             parent.setPosition(device, [primary: 100, secondary: 0])
@@ -333,7 +344,7 @@ def close() {
             log.info "close() shade supports tilt only"
             break
         case 6:    // Top Down
-            parent.setPosition(device, [secondary: 100])
+            parent.setPosition(device, [primary: 100])
             break
         case 7:    // Top Down Bottom Up
             parent.setPosition(device, [primary: 0, secondary: 0])
@@ -567,8 +578,13 @@ def getShadeCapabilities() {
 def isClosed(level) {
     if (logEnable) log.debug "isClosed()"
     def result
-
-    if (getShadeCapabilities() == 7) {
+    def shadeCapabilities = getShadeCapabilities()
+    
+    if (shadeCapabilities == 6) {
+        if (logEnable) log.debug "Checking Top-Down shade closed state"
+        result = (level >= 99) ? true : false        
+    }
+    else if (shadeCapabilities == 7) {
         if (logEnable) log.debug "Checking TB/BU shade closed state"
         result = (device.currentValue('primaryPosition', true) == 0 && device.currentValue('secondaryPosition', true) == 0) ? true : false
     }
@@ -585,8 +601,13 @@ def isClosed(level) {
 def isOpen(level) {
     if (logEnable) log.debug "isOpen()"
     def result
-
-    if (getShadeCapabilities() == 7) {
+    def shadeCapabilities = getShadeCapabilities()
+    
+    if (shadeCapabilities == 6) {
+        if (logEnable) log.debug "Checking Top-Down shade open state"
+        result = (level <= 1) ? true : false        
+    }
+    else if (shadeCapabilities == 7) {
         if (logEnable) log.debug "Checking TB/BU shade open state"
         result = (device.currentValue('primaryPosition', true) == 100 && device.currentValue('secondaryPosition', true) == 0) ? true : false
     }
