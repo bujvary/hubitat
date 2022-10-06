@@ -8,16 +8,6 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0/**
- *  Hunter Douglas PowerView Shade
- *
- *  Copyright 2017 Chris Lang
- *
- *  Ported to Hubitat by Brian Ujvary
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License. You may obtain a copy of the License at:
- *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
@@ -25,6 +15,10 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/06/2022 v2.6.3 - Reversed min/max values and fixed posKind for Top-Down shades in open() and close()
+ *                      - Initialized state.capabilities to -1 if not in shade data from hub
+ *                      - Added note to "Shade capability information" about state.capabilities being -1
+ *                      - Fixed checks in handleEvent() for missing values
  *    09/08/2022 v2.6.2 - Added check for shade firmware version
  *    06/24/2022 v2.6.1 - Version number update only
  *    06/23/2022 v2.6.0 - Version number update only
@@ -211,7 +205,9 @@ def initialize() {
     <td class="tg-0lax">Duolite lift operation plus 90° tilt operation. Includes: Silhouette Duolite.</td>
   </tr>
 </tbody>
-</table>'''
+</table>
+</br>
+Note: If the shade capabilities value is -1 then you will need to set the Shade Capability Override value in the Preferences section.'''
     }
 }
 
@@ -227,9 +223,10 @@ public handleEvent(shadeJson) {
     if (logEnable) log.debug "handleEvent: shadeJson = ${shadeJson}"
     def now = now()
     
-    if(settings?.railForLevelState==null) settings?.railForLevelState=0
+    if(settings?.railForLevelState == null) 
+        settings?.railForLevelState=0
     
-    if (shadeJson?.positions) {
+    if (shadeJson?.positions != null) {
         def positions = shadeJson.positions
         if (positions.posKind1) {
             updatePosition(positions.position1, positions.posKind1)
@@ -246,7 +243,7 @@ public handleEvent(shadeJson) {
         }
     }
 
-    if (shadeJson?.batteryStrength) {
+    if (shadeJson?.batteryStrength != null) {
         def batteryLevel = 100
         def battVoltage = shadeJson.batteryStrength / 10
 
@@ -275,11 +272,13 @@ public handleEvent(shadeJson) {
         parent.sendBatteryLowNotification(device)
     }
     
-    state.capabilities = shadeJson?.capabilities;
+    if (shadeJson?.capabilities != null)
+        state.capabilities = shadeJson.capabilities;
+    else
+        state.capabilities = -1
     
-    if (shadeJson?.firmware) {
+    if (shadeJson?.firmware != null)
         device.updateDataValue("firmwareVersion", "${shadeJson.firmware.revision}.${shadeJson.firmware.subRevision}.${shadeJson.firmware.build}")
-    }
     
     device.updateDataValue("shadeTypeID", "${shadeJson.type}")
 }
@@ -324,7 +323,7 @@ def updatePosition(position, posKind) {
             eventName = "tiltPosition"
             break
         default:
-            throw new Exception("Uuknown posKind  \"${posKind}\"")
+            throw new Exception("Unknown posKind  \"${posKind}\"")
     }
     
     if (logEnable) log.debug "sending event ${eventName} with value ${level}"
@@ -381,7 +380,7 @@ def open() {
             log.info "open() shade supports tilt only"
             break
         case 6:    // Top Down
-            parent.setPosition(device, [topPosition: 0])
+            parent.setPosition(device, [bottomPosition: 0])
             break
         case 7:    // Top Down Bottom Up
             parent.setPosition(device, [bottomPosition: 100, topPosition: 0])
@@ -410,7 +409,7 @@ def close() {
             log.info "close() shade supports tilt only"
             break
         case 6:    // Top Down
-            parent.setPosition(device, [topPosition: 100])
+            parent.setPosition(device, [bottomPosition: 100])
             break
         case 7:    // Top Down Bottom Up
             parent.setPosition(device, [bottomPosition: 0, topPosition: 0])
