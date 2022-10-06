@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview",
   "author": "Brian Ujvary",
-  "version": "2.6.3",
+  "version": "2.6.4",
   "minimumHEVersion": "0.0",
   "dateReleased": "2022-10-06",
-  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.6.3\nPowerview Shade Driver\n * Fixed issue with Top-Down shades in open() and close()",
+  "releaseNotes": "Hunter Douglas PowerView App/Drivers v2.6.4\nPowerview Shade Driver\n * Added logic to isOpen() and isClosed() to check state of Top-Down shades",
   "apps": [
     {
       "id": "bbcff956-5ba6-4fb8-bcdb-8a11b5ed5cfd",
@@ -13,7 +13,7 @@
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview.groovy",
       "required": true,
       "oauth": false,
-      "version": "2.6.3"
+      "version": "2.6.4"
     }
   ],
   "drivers": [
@@ -23,7 +23,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-repeater.groovy",
       "required": true,
-      "version": "2.6.3"
+      "version": "2.6.4"
     },
     {
       "id": "0c5dc3ed-8685-4fee-9418-26013e1bf734",
@@ -31,7 +31,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room.groovy",
       "required": true,
-      "version": "2.6.3"
+      "version": "2.6.4"
     },
     {
       "id": "0ba392fa-809d-4ae4-b960-df5fbfbcd6c7",
@@ -39,7 +39,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-scene.groovy",
       "required": true,
-      "version": "2.6.3"
+      "version": "2.6.4"
     },
     {
       "id": "ca46e150-2ae5-41c5-ac10-6c18aa9d10bb",
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade.groovy",
       "required": true,
-      "version": "2.6.3"
+      "version": "2.6.4"
     }
   ]
 }
