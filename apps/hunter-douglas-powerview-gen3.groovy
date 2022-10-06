@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/06/2022 v0.4 - Version number update only
  *    10/04/2022 v0.3 - Removed hardcoded testing port for HD Powerview URL
  *    10/04/2022 v0.2 - Added checks for HTTP status codes in callback functions
  *                    - Changed call to trigger scene from GET to PUT
@@ -38,7 +39,6 @@ definition(
     singleInstance: true,
     importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview-gen3.groovy"
 )
-
 
 preferences {
     section("Title") {
