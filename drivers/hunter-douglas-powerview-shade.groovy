@@ -15,6 +15,9 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/07/2022 v2.6.5 - Added logic to convert shade type to an equivalent shade capabilities value
+ *                      - Added shade capabilities type 10 as defined by the HD Powerview Gen3 API
+ *                      - Added logic to reinitialize the "Shade capability information" state on install
  *    10/06/2022 v2.6.4 - Added logic to isOpen() and isClosed() to check state of Top-Down shades
  *    10/06/2022 v2.6.3 - Reversed min/max values and fixed posKind for Top-Down shades in open() and close()
  *                      - Initialized state.capabilities to -1 if not in shade data from hub
@@ -105,7 +108,8 @@ metadata {
             6: "Top Down",
             7: "Top Down/Bottom Up",
             8: "Duolite Lift",
-            9: "Duolite Lift and Tilt 90°"
+            9: "Duolite Lift and Tilt 90°",
+            10: "Duolite Lift and Tilt 180°"
         ]
         
         if (getShadeCapabilities() == 7) {
@@ -123,6 +127,9 @@ metadata {
 }
 
 def installed() {
+    if (state."Shade capability information from Hunter Douglas" != null)
+        state.remove("Shade capability information from Hunter Douglas")
+    
     initialize()
 }
 
@@ -205,6 +212,11 @@ def initialize() {
     <td class="tg-02ax">Duolite Lift and Tilt 90°</td>
     <td class="tg-0lax">Duolite lift operation plus 90° tilt operation. Includes: Silhouette Duolite.</td>
   </tr>
+  <tr>
+    <td class="tg-baqh">10</td>
+    <td class="tg-02ax">Duolite Lift with Tilt 180°</td>
+    <td class="tg-0lax">Duolite lift operation plus 180° tilt operation. Includes Silhouette Halo Duolite.</br>&nbsp;&bull;&nbsp;Uses the “primary,” “secondary,” and “tilt” control types</td>
+  </tr>
 </tbody>
 </table>
 </br>
@@ -273,11 +285,15 @@ public handleEvent(shadeJson) {
         parent.sendBatteryLowNotification(device)
     }
     
-    if (shadeJson?.capabilities != null)
+    if (shadeJson?.capabilities != null) {
         state.capabilities = shadeJson.capabilities;
-    else
-        state.capabilities = -1
-    
+    }
+    else {
+        if (state.capabilities == null) {
+            state.capabilities = shadeTypeToCapability(shadeJson.type)
+        }
+    }
+
     if (shadeJson?.firmware != null)
         device.updateDataValue("firmwareVersion", "${shadeJson.firmware.revision}.${shadeJson.firmware.subRevision}.${shadeJson.firmware.build}")
     
@@ -375,6 +391,7 @@ def open() {
         case 4:    // Vertical Tilt 180
         case 8:    // Duolite Lift
         case 9:    // Duolite Lift and Tilt 90
+        case 10:   // Duolite Lift and Tilt 180
             parent.setPosition(device, [bottomPosition: 100])
             break
         case 5:    // Tilt Only 180
@@ -404,6 +421,7 @@ def close() {
         case 4:    // Vertical Tilt 180
         case 8:    // Duolite Lift
         case 9:    // Duolite Lift and Tilt 90
+        case 10:   // Duolite Lift and Tilt 180
             parent.setPosition(device, [bottomPosition: 0])
             break
         case 5:    // Tilt Only 180
@@ -541,6 +559,7 @@ def supportsTilt180() {
         case 2:    // Bottom Up Tilt 180
         case 4:    // Vertical Tilt 180
         case 5:    // Tilt Only 180
+        case 10:   // Duolite Lift and Tilt 180
             result = true
             break
         default:
@@ -563,6 +582,7 @@ def supportsTilt() {
         case 4:    // Vertical Tilt 180
         case 5:    // Tilt Only 180
         case 9:    // Duolite Lift and Tilt 90
+        case 10:   // Duolite Lift and Tilt 180
             result = true
             break
         default:
@@ -621,6 +641,70 @@ def isOpen(level) {
     if (logEnable) log.debug "isOpen() = ${result}"
     
     return result
+}
+
+def shadeTypeToCapability(shadeType) {
+    if (logEnable) log.debug "shadeTypeToCapability()"
+    
+    def capability = -1
+    
+    switch (shadeType) {
+        case 1:
+        case 4:
+        case 5:
+        case 6:
+        case 31:
+        case 42:
+        case 49:
+            capability = 0
+            break
+        case 18:
+        case 23:
+        case 43:
+        case 44:
+            capability = 1
+            break
+        case 51:
+        case 62:
+            capability = 2
+            break
+        case 69:
+        case 70:
+        case 71:
+            capability = 3
+            break
+        case 54:
+        case 55:
+        case 56:
+            capability = 4
+            break
+        case 66:
+            capability = 5
+            break
+        case 7:
+            capability = 6
+            break
+        case 8:
+        case 9:
+        case 33:
+        case 47:
+            capability = 7
+            break
+        case 65:
+        case 79:
+            capability = 8
+            break
+        case 38:
+            capability = 9
+            break
+        default:
+            log.error("Unknown shade type ${shadeType})")
+            break
+    }
+    
+    if (logEnable) log.debug "shadeTypeToCapability() = ${capability}"
+    
+    return capability    
 }
 
 def logsOff() {
