@@ -29,7 +29,7 @@ import groovy.json.JsonSlurper
 // by a reconnect (~6 sec for me, so 7 should cover most)
 @Field static final Integer eventStreamDisconnectGracePeriod = 8
 
-@Field static final Integer httpPort = 8000
+@Field static final Integer httpPort = 80
 
 metadata {
    definition(name: "Hunter Douglas PowerView Shade SSE Gen3", namespace: "hdpowerview", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade-sse-gen3.groovy") {
