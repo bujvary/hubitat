@@ -17,7 +17,7 @@
  *  This driver is based on the work of Robert Morris - CoCoHue Bridge for Hubitat
  *
  *  Change Log:
- *    10/08/2022 v0.1 - Initial release
+ *    10/08/2022 v0.5 - Initial release
  *
  */ 
 
