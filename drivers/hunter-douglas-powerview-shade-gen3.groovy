@@ -8,23 +8,15 @@
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
- *      http://www.apache.org/licenses/LICENSE-2.0/**
- *  Hunter Douglas PowerView Shade
- *
- *  Copyright 2017 Chris Lang
- *
- *  Ported to Hubitat by Brian Ujvary
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License. You may obtain a copy of the License at:
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0/
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/07/2022 v0.5 - Added logic to convert shade type to an equivalent shade capabilities value
+ *                    - Added logic to reinitialize the "Shade capability information" state on install
  *    10/06/2022 v0.4 - Fixed position type for Top-Down shades in open() and close()
  *                    - Initialized state.capabilities to -1 if not in shade data from gateway
  *                    - Added note to "Shade capability information" about state.capabilities being -1
@@ -92,6 +84,9 @@ metadata {
 }
 
 def installed() {
+    if (state."Shade capability information from Hunter Douglas" != null)
+        state.remove("Shade capability information from Hunter Douglas")
+    
     initialize()
 }
 
@@ -209,16 +204,31 @@ public handleEvent(shadeJson) {
         parent.sendBatteryLowNotification(device)
     }
     
-    if (shadeJson?.capabilities != null)
+    if (shadeJson?.capabilities != null) {
         state.capabilities = shadeJson.capabilities;
-    else
-        state.capabilities = -1
+    }
+    else {
+        if (state.capabilities == null) {
+            state.capabilities = shadeTypeToCapability(shadeJson.type)
+        }
+    }
     
     if (shadeJson?.firmware != null) {
         device.updateDataValue("firmwareVersion", "${shadeJson.firmware.revision}.${shadeJson.firmware.subRevision}.${shadeJson.firmware.build}")
     }
     
     device.updateDataValue("shadeTypeID", "${shadeJson.type}")
+}
+
+public handleSseEvent(shadeJson) {
+    if (logEnable) log.debug "handleSseEvent: shadeJson = ${shadeJson}"
+    
+    if (shadeJson?.currentPositions != null) {
+        updatePosition(shadeJson.currentPositions)
+    }
+    else {
+        log.error "Shade Event not valid. Missing currentPositions array."
+    }
 }
 
 def updatePosition(positions) {
@@ -619,6 +629,70 @@ def isOpen(level) {
     if (logEnable) log.debug "isOpen() = ${result}"
     
     return result
+}
+
+def shadeTypeToCapability(shadeType) {
+    if (logEnable) log.debug "shadeTypeToCapability()"
+    
+    def capability = -1
+    
+    switch (shadeType) {
+        case 1:
+        case 4:
+        case 5:
+        case 6:
+        case 31:
+        case 42:
+        case 49:
+            capability = 0
+            break
+        case 18:
+        case 23:
+        case 43:
+        case 44:
+            capability = 1
+            break
+        case 51:
+        case 62:
+            capability = 2
+            break
+        case 69:
+        case 70:
+        case 71:
+            capability = 3
+            break
+        case 54:
+        case 55:
+        case 56:
+            capability = 4
+            break
+        case 66:
+            capability = 5
+            break
+        case 7:
+            capability = 6
+            break
+        case 8:
+        case 9:
+        case 33:
+        case 47:
+            capability = 7
+            break
+        case 65:
+        case 79:
+            capability = 8
+            break
+        case 38:
+            capability = 9
+            break
+        default:
+            log.error("Unknown shade type ${shadeType})")
+            break
+    }
+    
+    if (logEnable) log.debug "shadeTypeToCapability() = ${capability}"
+    
+    return capability    
 }
 
 def logsOff() {
