@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/08/2022 v0.5 - Added Server Sent Event capability
  *    10/06/2022 v0.4 - Version number update only
  *    10/04/2022 v0.3 - Removed hardcoded testing port for HD Powerview URL
  *    10/04/2022 v0.2 - Added checks for HTTP status codes in callback functions
@@ -23,9 +24,11 @@
  *
  */
 
+import com.hubitat.app.DeviceWrapper
 import groovy.transform.Field
 
 @Field static String htmlTab = "&nbsp;&nbsp;&nbsp;&nbsp;"
+@Field static String ShadeSseDni = "PowerView-Shade-SSE-1"
 
 definition(
     name: "Hunter Douglas PowerView Gen3",
@@ -39,6 +42,7 @@ definition(
     singleInstance: true,
     importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview-gen3.groovy"
 )
+
 
 preferences {
     section("Title") {
@@ -64,11 +68,14 @@ def mainPage() {
     // TO DO: REMOVE THIS LINE WHEN DONE
     logEnable = true
     
+    if (state?.shadeEventStreamStatus == null)
+        state.shadeEventStreamStatus = false
+    
     if (atomicState?.gettingFirmwareVer == null)
-        atomicState?.gettingFirmwareVer = true
+        atomicState.gettingFirmwareVer = true
     
     if(atomicState?.gettingFirmwareVerError == null)
-        atomicState?.gettingFirmwareVerError = false
+        atomicState.gettingFirmwareVerError = false
     
     if (logEnable) log.debug "atomicState?.gettingFirmwareVer = ${atomicState?.gettingFirmwareVer}"
     if (atomicState?.gettingFirmwareVer && settings?.powerviewIPAddress) {
@@ -86,10 +93,17 @@ def mainPage() {
                 section("Getting firmware version...") {
                     paragraph "Please wait..."
                 }
-            } else {
+            }
+            else {
                 if (atomicState?.gettingFirmwareVerError == false) {
                     section("<big><b>Firmware Version</b></big>") {
                         paragraph "${htmlTab}Name: ${state.fwName}</br>${htmlTab}Revision: ${state.fwRevision}</br>${htmlTab}SubRevision: ${state.fwSubRevision}</br>${htmlTab}Build: ${state.fwBuild}"
+                    }
+                        if (settings.useShadeEventStream == true) {
+                        section("<big><b>Event Stream Status</b></big>") {
+                            def shadeSseStatus = getShadeEventStreamStatus()
+                            paragraph "${htmlTab}Shade Event Stream: ${shadeSseStatus}"
+                        }
                     }
                     section("<big><b>Devices & Scenes</b></big>") {
                         def description = (atomicState?.deviceData) ? "Click to modify" : "Click to configure";
@@ -99,6 +113,9 @@ def mainPage() {
                     section("<big><b>Polling</b></big>") {
                         input("enableShadePoll", "bool", title: "Enable periodic polling of shade devices", required: false, defaultValue: true)
                         input("shadePollInterval", 'enum', title: "Shade Position Polling Interval", required: true, defaultValue: shadePollIntervalSetting, options: getPollIntervals())
+                    }
+                    section("<big><b>Event Streaming</b></big>") {
+                        input("useShadeEventStream", "bool", title: "Enable server sent events for shade devices", required: false, defaultValue: false)
                     }
                     section("<big><b>Notifications</b></big>") {
                         href "notificationsPage", title: "Text Notifications", description: "Click here for Options", state: "complete"
@@ -137,7 +154,8 @@ def devicesPage() {
             getShades()
         else if (atomicState?.gettingScenes)
             getScenes()
-    } else {
+    } 
+    else {
         atomicState?.loadingDevices = true
         atomicState?.gettingRooms = true
         atomicState?.gettingShades = false
@@ -168,7 +186,8 @@ def devicesPage() {
                     shadesDesc = atomicState?.deviceData?.shades.values().join(", ")
                 paragraph "The following shades will be added as devices: ${shadesDesc}"
                 atomicState?.shades = atomicState?.deviceData?.shades
-            } else {
+            }
+            else {
                 def shadesList = getDiscoveredShadeList()
                 input(name: "shades", title: "Shades", type: "enum", required: false, multiple: true, submitOnChange: true, options: shadesList)
                 atomicState?.shades = getSelectedShades(settings?.shades)
@@ -183,7 +202,8 @@ def devicesPage() {
                     scenesDesc = atomicState?.deviceData?.scenes.values().join(", ")
                 paragraph "The following scenes will be added as devices: ${scenesDesc}"
                 atomicState?.scenes = atomicState?.deviceData?.scenes
-            } else {
+            }
+            else {
                 def scenesList = getDiscoveredSceneList()
                 input(name: "scenes", title: "Scenes", type: "enum", required: false, multiple: true, submitOnChange: true, options: scenesList)
                 atomicState?.scenes = getSelectedScenes(settings?.scenes)
@@ -230,11 +250,14 @@ def roomsPage() {
                     def description
                     if (settings[openSetting] && settings[closeSetting]) {
                         description = "Blinds in this room will open and close via the configured scenes."
-                    } else if (settings[openSetting]) {
+                    }
+                    else if (settings[openSetting]) {
                         description = "Blinds in this room will open via the configured scene, but not close."
-                    } else if (settings[closeSetting]) {
+                    }
+                    else if (settings[closeSetting]) {
                         description = "Blinds in this room will close via the configured scene, but not open."
-                    } else {
+                    }
+                    else {
                         description = "No virtual device will be created for this room because neither open nor close scenes are configured."
                     }
                     paragraph(description)
@@ -251,7 +274,8 @@ def roomsPage() {
                     ]
                 }
             }
-        } else {
+        } 
+        else {
             section() {
                 paragraph("No rooms discovered")
             }
@@ -320,6 +344,14 @@ def initialize() {
         if (logEnable) log.debug "DEFAULT: runEvery5Minutes"
         runEvery5Minutes("pollDevices")
     }
+ 
+    DeviceWrapper shade_sse = getChildDevice(ShadeSseDni)
+    if (settings.useShadeEventStream == true) {
+        shade_sse?.connectEventStream()
+    }
+    else {
+        shade_sse?.disconnectEventStream()
+    }
     
     if (logEnable) runIn(900, logsOff)
 }
@@ -331,6 +363,7 @@ def logsOff() {
 
 def addDevices() {
     if (logEnable) log.debug "In addDevices()"
+
     if (atomicState?.rooms) {
         atomicState?.rooms?.collect { id, room ->
             if (logEnable) log.debug "checking room ${id}"
@@ -338,10 +371,11 @@ def addDevices() {
             def child = getChildDevice(dni)
             if (!child) {
                 if (room.openScene || room.closeScene) {
-                    child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room Gen3", dni, null, [label: getRoomLabel(room.name)])
+                    child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Room Gen3", dni, [label: getRoomLabel(room.name)])
                     if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
                 }
-            } else {
+            }
+            else {
                 def childLabel = child.getLabel()
                 def roomName = getRoomLabel(room.name)
                 if (childLabel != roomName) {
@@ -351,14 +385,16 @@ def addDevices() {
             }
         }
     }
+    
     if (atomicState?.shades) {
         atomicState?.shades?.collect { id, name ->
             def dni = shadeIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade Gen3", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade Gen3", dni, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
-            } else {
+            }
+            else {
                 def childLabel = child.getLabel()
                 if (childLabel != name) {
                     child.setLabel(name)
@@ -367,15 +403,16 @@ def addDevices() {
             }
         }
     }
+    
     if (atomicState?.scenes) {
         atomicState?.scenes?.collect { id, name ->
             def dni = sceneIdToDni(id)
             def child = getChildDevice(dni)
             if (!child) {
-                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene Gen3", dni, null, [label: name])
+                child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Scene Gen3", dni, [label: name])
                 if (logEnable) log.debug "Created child '${child}' with dni ${dni}"
             }
-             else {
+            else {
                 def childLabel = child.getLabel()
                 if (childLabel != name) {
                     child.setLabel(name)
@@ -383,6 +420,12 @@ def addDevices() {
                 }
             }
         }
+    }
+    
+    if (!getChildDevice(ShadeSseDni)) {
+        def name = "Hunter Douglas PowerView Shade SSE Gen3"
+        child = addChildDevice("hdpowerview", "Hunter Douglas PowerView Shade SSE Gen3", ShadeSseDni, [label: name, isComponent: true])
+        if (logEnable) log.debug "Created child '${child}' with dni ${ShadeSseDni}"
     }
 }
 
@@ -416,7 +459,8 @@ def pollDevices(firstPoll = false) {
             
                 runIn(runDelay, "pollShadeDelayed", [overwrite: false, data: [shadeId: shadeId]])
                 runDelay += 5
-            } else {
+            }
+            else {
                 if (logEnable) log.debug "Got null shade device, index ${index}"
             }
         }
@@ -585,7 +629,8 @@ def openRoom(roomDevice) {
     def sceneId = atomicState?.rooms[roomId]?.openScene
     if (sceneId) {
         triggerScene(sceneId)
-    } else {
+    }
+    else {
         log.info "no open scene configured for room ${roomId}"
     }
 }
@@ -597,7 +642,8 @@ def closeRoom(roomDevice) {
     def sceneId = atomicState?.rooms[roomId]?.closeScene
     if (sceneId) {
         triggerScene(sceneId)
-    } else {
+    }
+    else {
         log.info "no close scene configured for room ${roomId}"
     }
 }
@@ -614,7 +660,8 @@ void roomsCallback(hubitat.device.HubResponse hubResponse) {
             rooms[room.id] = name
             if (logEnable) log.debug "room: ID = ${room.id}, name = ${name}"
         }
-    } else {
+    }
+    else {
         log.error "roomsCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
     
@@ -652,7 +699,8 @@ void scenesCallback(hubitat.device.HubResponse hubResponse) {
             scenes[scene.id] = name
             if (logEnable) log.debug "scene: ID = ${scene.id}, name = ${name}"
         }
-    } else {
+    }
+    else {
         log.error "scenesCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
     
@@ -756,7 +804,7 @@ void shadePollCallback(hubitat.device.HubResponse hubResponse) {
 
         if (logEnable) log.debug "shadePollCallback for shade id ${shade.id}, calling device ${childDevice}"
             childDevice.handleEvent(shade)
-        }
+    }
     else {
         log.error "shadePollCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
@@ -773,7 +821,8 @@ def shadesPollCallback(hubitat.device.HubResponse hubResponse) {
             if (childDevice != null)
                 childDevice.handleEvent(shade)
         }
-    } else {
+    }
+    else {
         log.error "shadesPollCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
 }
@@ -787,7 +836,8 @@ void setPositionCallback(hubitat.device.HubResponse hubResponse) {
             def childDevice = getShadeDevice(response.id)
             if (logEnable) log.debug "setPositionCallback for shadeId ${response.id}, device ${childDevice}"
         }
-    } else {
+    }
+    else {
         log.error "setPositionCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
 }
@@ -805,7 +855,8 @@ void shadesCallback(hubitat.device.HubResponse hubResponse) {
             shades[shade.id] = shade.ptName
             if (logEnable) log.debug "shade: ID = ${shade.id}, name = ${name}"
         }
-    } else {
+    }
+    else {
         log.error "shadesCallback() HTTP Error (${hubResponse.status}): ${hubResponse.json.errMsg}"
     }
     
@@ -854,7 +905,29 @@ def callPowerView(String path, callback, Map query = null, String method = "GET"
     sendHubCommand(hubAction)
 }
 
+// SHADE SSE FUNCTIONS
+Boolean getShadeEventStreamEnabledSetting() {
+    if (logEnable) log.debug "getShadeEventStreamEnabledSetting()"
+    
+    return (settings.useShadeEventStream == true) ? true : false
+}
+
+void setShadeEventStreamStatus(Boolean isConnected) {
+    if (logEnable) log.debug "setShadeEventStreamStatus($isConnected)"
+
+    state.shadeEventStreamStatus = isConnected
+}
+
+String getShadeEventStreamStatus() {
+    if (logEnable) log.debug "getShadeEventStreamStatus()"
+
+    return (state.shadeEventStreamStatus == true) ? "<span style='color:green'>Connected</span>" : "<span style='color:red'>Disconnected</span>"
+}
+
 // UTILITY FUNCTIONS
+def getGatewayIP() {
+    return settings?.powerviewIPAddress
+}
 
 def getPollIntervals() {
     return [["1":"1 Minute"],["5":"5 Minutes [DEFAULT]"],["10":"10 Minutes"],["15":"15 Minutes"],["30":"30 Minutes"],["60":"60 Minutes"]]
