@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    10/09/2022 v2.6.6 - Fixed initialization of the shade capabilities state value
  *    10/07/2022 v2.6.5 - Added logic to convert shade type to an equivalent shade capabilities value
  *                      - Added shade capabilities type 10 as defined by the HD Powerview Gen3 API
  *                      - Added logic to reinitialize the "Shade capability information" state on install
@@ -129,6 +130,9 @@ metadata {
 def installed() {
     if (state."Shade capability information from Hunter Douglas" != null)
         state.remove("Shade capability information from Hunter Douglas")
+    
+    if (state.capabilities == -1)
+        state.remove(state.capabilities)
     
     initialize()
 }
