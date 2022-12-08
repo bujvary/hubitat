@@ -17,6 +17,7 @@
  *  This driver is based on the work of Robert Morris - CoCoHue Bridge for Hubitat
  *
  *  Change Log:
+ *    12/08/2022 v0.8 - Added httpPort option to be used for testing only
  *    12/08/2022 v0.7 - Modified check in parse() to verify message was a shade event before processing
  *    12/08/2022 v0.6 - Added check in parse() to verify message was a shade event before processing
  *    10/08/2022 v0.5 - Initial release
@@ -31,8 +32,6 @@ import groovy.json.JsonSlurper
 // by a reconnect (~6 sec for me, so 7 should cover most)
 @Field static final Integer eventStreamDisconnectGracePeriod = 8
 
-@Field static final Integer httpPort = 8000
-
 metadata {
    definition(name: "Hunter Douglas PowerView Shade SSE Gen3", namespace: "hdpowerview", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade-sse-gen3.groovy") {
       capability "Actuator"
@@ -46,7 +45,8 @@ metadata {
    }
    
    preferences() {
-        input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', displayDuringSetup: false, defaultValue: true
+      input name: "httpPort", type: "string", title: "HTTP Port", description: "<b>DO NOT CHANGE THIS UNLESS DIRECTED TO DO SO!</b>", required: false, displayDuringSetup: true, defaultValue: 80
+      input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', displayDuringSetup: false, defaultValue: true
    }   
 }
 
