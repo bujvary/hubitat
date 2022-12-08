@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    12/08/2022 v0.7 - Version number update only
  *    12/08/2022 v0.6 - Version number update only
  *    10/07/2022 v0.5 - Added logic to convert shade type to an equivalent shade capabilities value
  *                    - Added logic to reinitialize the "Shade capability information" state on install
