@@ -17,6 +17,7 @@
  *  This driver is based on the work of Robert Morris - CoCoHue Bridge for Hubitat
  *
  *  Change Log:
+ *    12/08/2022 v0.7 - Modified check in parse() to verify message was a shade event before processing
  *    12/08/2022 v0.6 - Added check in parse() to verify message was a shade event before processing
  *    10/08/2022 v0.5 - Initial release
  *
@@ -30,7 +31,7 @@ import groovy.json.JsonSlurper
 // by a reconnect (~6 sec for me, so 7 should cover most)
 @Field static final Integer eventStreamDisconnectGracePeriod = 8
 
-@Field static final Integer httpPort = 80
+@Field static final Integer httpPort = 8000
 
 metadata {
    definition(name: "Hunter Douglas PowerView Shade SSE Gen3", namespace: "hdpowerview", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade-sse-gen3.groovy") {
@@ -161,9 +162,9 @@ private void setEventStreamStatusToDisconnected() {
 def parse(String description) {
     if (logEnable) log.debug "parse: $description"
 
-    shadeEvent = new JsonSlurper().parseText(description)
-    
-    if (shadeEvent?.evt != null) {
+    if (description.startsWith("{\"evt\"")) {
+        shadeEvent = new JsonSlurper().parseText(description)
+
         def shadeDevice = parent.getShadeDevice(shadeEvent.id)        
         if (shadeDevice != null)
             shadeDevice.handleSseEvent(shadeEvent)
