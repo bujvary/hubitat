@@ -17,6 +17,7 @@
  *  This driver is based on the work of Robert Morris - CoCoHue Bridge for Hubitat
  *
  *  Change Log:
+ *    12/08/2022 v0.6 - Added check in parse() to verify message was a shade event before processing
  *    10/08/2022 v0.5 - Initial release
  *
  */ 
@@ -161,10 +162,12 @@ def parse(String description) {
     if (logEnable) log.debug "parse: $description"
 
     shadeEvent = new JsonSlurper().parseText(description)
-    //parent.processShadeEvent(shadeEvent)
-    def shadeDevice = parent.getShadeDevice(shadeEvent.id)        
-    if (shadeDevice != null)
-        shadeDevice.handleSseEvent(shadeEvent)
+    
+    if (shadeEvent?.evt != null) {
+        def shadeDevice = parent.getShadeDevice(shadeEvent.id)        
+        if (shadeDevice != null)
+            shadeDevice.handleSseEvent(shadeEvent)
+    }
 }
 
 def doSendEvent(String eventName, eventValue) {
