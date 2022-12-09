@@ -15,6 +15,9 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    12/08/2022 v0.9 - Removed firstpoll in polldevices() so now polldevices()
+ *                      will only poll shades if shade polling is enabled
+ *                    - Changed enableShadePoll to be off by default
  *    12/08/2022 v0.8 - Version number update only
  *    12/08/2022 v0.7 - Version number update only
  *    12/08/2022 v0.6 - Version number update only
@@ -114,11 +117,11 @@ def mainPage() {
                         atomicState?.loadingDevices = false
                     }
                     section("<big><b>Polling</b></big>") {
-                        input("enableShadePoll", "bool", title: "Enable periodic polling of shade devices", required: false, defaultValue: true)
+                        input("enableShadePoll", "bool", title: "Enable periodic polling of shade devices (Not recommended)", required: false, defaultValue: false)
                         input("shadePollInterval", 'enum', title: "Shade Position Polling Interval", required: true, defaultValue: shadePollIntervalSetting, options: getPollIntervals())
                     }
                     section("<big><b>Event Streaming</b></big>") {
-                        input("useShadeEventStream", "bool", title: "Enable server sent events for shade devices", required: false, defaultValue: false)
+                        input("useShadeEventStream", "bool", title: "Enable server sent events for shade devices (Recommended)", required: false, defaultValue: false)
                     }
                     section("<big><b>Notifications</b></big>") {
                         href "notificationsPage", title: "Text Notifications", description: "Click here for Options", state: "complete"
@@ -314,38 +317,40 @@ def initialize() {
     addDevices()
     unschedule()
     
-    pollDevices(true)
+    if (enableShadePoll) {
+        pollDevices
+        
+        if (logEnable) log.debug "Configuring shade polling for every ${shadePollIntervalSetting} ${shadePollIntervalSetting == 1 ? 'minute' : 'minutes'}"
 
-    if (logEnable) log.debug "Configuring shade polling for every ${shadePollIntervalSetting} ${shadePollIntervalSetting == 1 ? 'minute' : 'minutes'}"
-
-    switch (shadePollIntervalSetting) {
-      case 1:
-        if (logEnable) log.debug "runEvery1Minute"
-        runEvery1Minute("pollDevices")
-        break
-      case 5:
-        if (logEnable) log.debug "runEvery5Minutes"
-        runEvery5Minutes("pollDevices")
-        break
-      case 10:
-        if (logEnable) log.debug "runEvery10Minutes"
-        runEvery10Minutes("pollDevices")
-        break
-      case 15:
-        if (logEnable) log.debug "runEvery15Minutes"
-        runEvery15Minutes("pollDevices")
-        break
-      case 30:
-        if (logEnable) log.debug "runEvery30Minutes"
-        runEvery30Minutes("pollDevices")
-        break
-      case 60:
-        if (logEnable) log.debug "runEvery1Hour"
-        runEvery1Hour("pollDevices")
-        break
-      default:
-        if (logEnable) log.debug "DEFAULT: runEvery5Minutes"
-        runEvery5Minutes("pollDevices")
+        switch (shadePollIntervalSetting) {
+            case 1:
+            if (logEnable) log.debug "runEvery1Minute"
+            runEvery1Minute("pollDevices")
+            break
+            case 5:
+            if (logEnable) log.debug "runEvery5Minutes"
+            runEvery5Minutes("pollDevices")
+            break
+            case 10:
+            if (logEnable) log.debug "runEvery10Minutes"
+            runEvery10Minutes("pollDevices")
+            break
+            case 15:
+            if (logEnable) log.debug "runEvery15Minutes"
+            runEvery15Minutes("pollDevices")
+            break
+            case 30:
+            if (logEnable) log.debug "runEvery30Minutes"
+            runEvery30Minutes("pollDevices")
+            break
+            case 60:
+            if (logEnable) log.debug "runEvery1Hour"
+            runEvery1Hour("pollDevices")
+            break
+            default:
+                if (logEnable) log.debug "DEFAULT: runEvery5Minutes"
+                runEvery5Minutes("pollDevices")
+        }
     }
  
     DeviceWrapper shade_sse = getChildDevice(ShadeSseDni)
@@ -388,7 +393,7 @@ def addDevices() {
             }
         }
     }
-    
+
     if (atomicState?.shades) {
         atomicState?.shades?.collect { id, name ->
             def dni = shadeIdToDni(id)
@@ -449,11 +454,11 @@ def removeDevices() {
     }
 }
 
-def pollDevices(firstPoll = false) {
-    def now = now()
-    def runDelay = 1
+def pollDevices() {
+    if (enableShadePoll) {
+        def now = now()
+        def runDelay = 1
 
-    if (enableShadePoll || firstPoll) {
         getShadeDevices().eachWithIndex { device, index ->
             if (device != null) {
                 def shadeId = dniToShadeId(device.deviceNetworkId)
