@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    03/31/2023 v0.10 - Added battery level event in handleEvent()
  *    12/08/2022 v0.9 - Version number update only
  *    12/08/2022 v0.8 - Version number update only
  *    12/08/2022 v0.7 - Version number update only
@@ -202,10 +203,34 @@ public handleEvent(shadeJson) {
         updatePosition(shadeJson.positions)
     }
 	
-	state.batteryStatus = shadeJson?.batteryStatus;  // 0 = minimum, 3 = maximum
-    if (state.batteryStatus == 1 && (!state?.lastBatteryLowNotify || (now - state?.lastBatteryLowNotify) > (24 * 60 * 60 * 1000))) {
-        state?.lastBatteryLowNotify = now
-        parent.sendBatteryLowNotification(device)
+    if (shadeJson?.batteryStatus != null) {
+        def batteryLevel
+        
+	    state.batteryStatus = shadeJson?.batteryStatus;  // 0 = minimum, 3 = maximum
+
+        switch (shadeJson?.batteryStatus) {
+            case 1:  // Low
+                batteryLevel = 10
+                break
+            case 2:  // Medium
+                batteryLevel = 50
+                break
+            case 3:  // High
+            case 4:  // Plugged in
+                batteryLevel = 100
+                break
+            default:
+                batteryLevel = unknown
+                break
+        }
+        
+        descriptionText = "${device.displayName} battery is ${batteryLevel}%"
+        sendEvent([name: "battery", value: batteryLevel, unit: "%", descriptionText: descriptionText])
+        
+        if (shadeJson?.batteryStatus == 1 && (!state?.lastBatteryLowNotify || (now - state?.lastBatteryLowNotify) > (24 * 60 * 60 * 1000))) {
+            state?.lastBatteryLowNotify = now
+            parent.sendBatteryLowNotification(device)
+        }
     }
     
     if (shadeJson?.capabilities != null) {
