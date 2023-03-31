@@ -1,10 +1,10 @@
 {
   "packageName": "Hunter Douglas Powerview Gen3",
   "author": "Brian Ujvary",
-  "version": "0.9",
+  "version": "0.10",
   "minimumHEVersion": "0.0",
-  "dateReleased": "2022-12-08",
-  "releaseNotes": "Hunter Douglas PowerView Gen 3 App/Drivers\n * Modified so shade polling is disabled by default and removed polling of shade devices on initialization",
+  "dateReleased": "2023-03-31",
+  "releaseNotes": "Hunter Douglas PowerView Gen 3 App/Drivers\n * Added battery level event in handleEvent() to shade driver",
   "apps": [
     {
       "id": "b4bffeec-8bb6-453b-b117-1fc0a8807f1e",
@@ -13,7 +13,7 @@
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/apps/hunter-douglas-powerview-gen3.groovy",
       "required": true,
       "oauth": false,
-      "version": "0.9"
+      "version": "0.10"
     }
   ],
   "drivers": [
@@ -23,7 +23,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-room-gen3.groovy",
       "required": true,
-      "version": "0.9"
+      "version": "0.10"
     },
     {
       "id": "59b4db94-aa74-47d9-8b1d-e20f3e80d043",
@@ -31,7 +31,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-scene-gen3.groovy",
       "required": true,
-      "version": "0.9"
+      "version": "0.10"
     },
     {
       "id": "40573420-fe45-4faa-8eef-843c2610caf3",
@@ -39,7 +39,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade-gen3.groovy",
       "required": true,
-      "version": "0.9"
+      "version": "0.10"
     },
     {
       "id": "fb567f5c-2c39-4c61-8256-1d8a32842a5a",
@@ -47,7 +47,7 @@
       "namespace": "hdpowerview",
       "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/hunter-douglas-powerview-shade-sse-gen3.groovy",
       "required": true,
-      "version": "0.9"
+      "version": "0.10"
     }
   ]
 }
