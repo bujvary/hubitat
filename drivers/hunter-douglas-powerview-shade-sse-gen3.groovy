@@ -17,6 +17,7 @@
  *  This driver is based on the work of Robert Morris - CoCoHue Bridge for Hubitat
  *
  *  Change Log:
+ *    03/31/2023 v0.10 - Version number update only
  *    12/08/2022 v0.9 - Version number update only
  *    12/08/2022 v0.8 - Added httpPort option to be used for testing only
  *    12/08/2022 v0.7 - Modified check in parse() to verify message was a shade event before processing
