@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    03/31/2023 v0.10 - Version number update only
  *    12/08/2022 v0.9 - Removed firstpoll in polldevices() so now polldevices()
  *                      will only poll shades if shade polling is enabled
  *                    - Changed enableShadePoll to be off by default
