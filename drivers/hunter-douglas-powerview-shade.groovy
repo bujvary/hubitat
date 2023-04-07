@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    04/03/2023 v2.6.7 - Added Open Position and Closed Position preferences
  *    10/09/2022 v2.6.6 - Fixed initialization of the shade capabilities state value
  *    10/07/2022 v2.6.5 - Added logic to convert shade type to an equivalent shade capabilities value
  *                      - Added shade capabilities type 10 as defined by the HD Powerview Gen3 API
@@ -123,6 +124,8 @@ metadata {
         input name: 'preset', type: 'number', title: '<b>Preset Position</b>', description: '<div><i>Set the window shade preset position (defaults to 50)</i></div><br>', displayDuringSetup: false, defaultValue: 50, range: "0..100"
         input name: 'pluggedIn', type: 'bool', title: '<b>Plug-in power supply?</b>', description: '<div><i>Automatically sets battery level to 100% if enabled</i></div><br>', displayDuringSetup: false, defaultValue: false
         input name: 'maxVoltage', type: 'decimal', title: '<b>Maximum Voltage</b>', description: '<div><i>Maximum voltage of battery wand</i></div><br>', displayDuringSetup: false, defaultValue: '18.5', range: "1..50", required: true
+        input name: "closedPosition", type: "number", title: '<b>Closed position</b>', description: '<div><i>Set the position for fully closed window shade</i></div><br>', defaultValue: 0, range: "0..100", required: false, displayDuringSetup: false
+        input name: "openPosition", type: "number", title: '<b>Open position</b>', description: '<div><i>Set the position for fully open window shade</i></div><br>', defaultValue: 100, range: "0..100", required: false, displayDuringSetup: false
         input name: 'logEnable', type: 'bool', title: '<b>Enable Logging?</b>', description: '<div><i>Automatically disables after 15 minutes</i></div><br>', displayDuringSetup: false, defaultValue: true
     }
 }
@@ -140,7 +143,9 @@ def installed() {
 def initialize() {
     if (logEnable) runIn(900, logsOff)
     
-    if(settings?.maxVoltage==null) setting?.maxVoltage=18
+    if (settings?.maxVoltage==null) setting?.maxVoltage=18
+    if (settings?.closedPosition==null) settings?.closedPosition=0
+    if (settings?.openPosition==null) settings?.openPosition=100
     
     //state.remove("Shade capability information from Hunter Douglas")
     if (!state."Shade capability information from Hunter Douglas") {
@@ -345,6 +350,16 @@ def updatePosition(position, posKind) {
             break
         default:
             throw new Exception("Unknown posKind  \"${posKind}\"")
+    }
+    
+    if (level != 0 && level < settings?.closedPosition) {
+        if (logEnable) log.debug "Forcing level to 0"
+        level = 0
+    }
+    
+    if (level != 100 && level > settings?.openPosition) {
+        if (logEnable) log.debug "Forcing level to 100"
+        level = 100
     }
     
     if (logEnable) log.debug "sending event ${eventName} with value ${level}"
