@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    04/12/2023 v0.12 - Adjusted tilt logic event notification in updatePosition()
  *    04/07/2023 v0.11 - Added null checks in updatePosition()
  *    03/31/2023 v0.10 - Added battery level event in handleEvent()
  *    12/08/2022 v0.9 - Version number update only
@@ -266,26 +267,27 @@ def updatePosition(positions) {
     def posKind = primary
     def eventName
     def level
+    def tilt
 
-    if (supportsSecondary && positions?.secondary != null) {
+    if (supportsSecondary() && positions?.secondary != null) {
         level = Math.round(positions.secondary * 100)
         sendEvent(name: "secondaryPosition", value: level)
     }
 
-    if (supportsPrimary && positions?.primary != null) {
+    if (supportsPrimary() && positions?.primary != null) {
         level = Math.round(positions.primary * 100)
         sendEvent(name: "primaryPosition", value: level)
         sendLevelEvents = true
     }
     
-    if (supportsTilt && positions?.tilt != null) {
-        level = Math.round(positions.tilt * 100)
-        sendEvent(name: "tiltPosition", value: level)
-    }
-    
-    if (getShadeCapabilities() == 5) {
-        level = Math.round(positions.tilt * 100)
-        sendLevelEvents = true
+    if (supportsTilt() && positions?.tilt != null) {
+        tilt = Math.round(positions.tilt * 100)
+        sendEvent(name: "tiltPosition", value: tilt)
+        
+        if (getShadeCapabilities() == 5) {
+            level = tilt
+            sendLevelEvents = true
+        }
     }
     
     if (getShadeCapabilities() == 7) {
@@ -543,7 +545,7 @@ def supportsPrimary() {
 }
 
 def supportsSecondary() {
-    if (logEnable) log.debug "supportsPrimary()"
+    if (logEnable) log.debug "supportsSecondary()"
 
     def shadeCapabilities = getShadeCapabilities()
     def result = false
