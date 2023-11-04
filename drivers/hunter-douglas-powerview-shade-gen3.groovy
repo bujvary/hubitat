@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    11/04/2023 v0.13 - Replaced all exceptions with log.debug
  *    04/12/2023 v0.12 - Adjusted tilt logic event notification in updatePosition()
  *    04/07/2023 v0.11 - Added null checks in updatePosition()
  *    03/31/2023 v0.10 - Added battery level event in handleEvent()
@@ -362,7 +363,7 @@ def open() {
             parent.setPosition(device, [primary: 100, secondary: 0])
             break
         default:
-            throw new Exception("Unknown shade capability \"${shadeCapabilities}\"")
+            if (logEnable) log.debug "Unknown shade capability \"${shadeCapabilities}\""
     }
 }
 
@@ -392,7 +393,7 @@ def close() {
             parent.setPosition(device, [primary: 0, secondary: 0])
             break
         default:
-            throw new Exception("Unknown shade capability \"${shadeCapabilities}\"")
+            if (logEnable) log.debug "Unknown shade capability \"${shadeCapabilities}\""
     }
 }
 
@@ -508,7 +509,7 @@ def startPositionChange(direction) {
 			open()
             break
 		default:
-			throw new Exception("Unsupported startPositionChange direction \"${direction}\"")
+            if (logEnable) log.debug "Unsupported startPositionChange direction \"${direction}\""
             break
 	}
 }
@@ -538,7 +539,7 @@ def supportsPrimary() {
             result = true
             break
         default:
-            throw new Exception("Shade does not support primary control type (shade capability = ${shadeCapabilities})")
+            if (logEnable) log.debug "Shade does not support primary control type (shade capability = ${shadeCapabilities})"
     }
     
     return result
@@ -559,7 +560,7 @@ def supportsSecondary() {
             result = true
             break
         default:
-            throw new Exception("Shade does not support secondary control type (shade capability = ${shadeCapabilities})")
+            if (logEnable) log.debug "Shade does not support secondary control type (shade capability = ${shadeCapabilities})"
     }
     
     return result
@@ -581,7 +582,7 @@ def supportsTilt() {
             result = true
             break
         default:
-            throw new Exception("Shade does not support tilt control type (shade capability = ${shadeCapabilities})")
+            if (logEnable) log.debug "Shade does not support tilt control type (shade capability = ${shadeCapabilities})"
             break
     }
     
@@ -606,7 +607,7 @@ def supportsTilt180() {
             result = true
             break
         default:
-            throw new Exception("Shade does not support tilt control type (shade capability = ${shadeCapabilities})")
+            if (logEnable) log.debug "Shade does not support tilt control type (shade capability = ${shadeCapabilities})"
             break
     }
     
