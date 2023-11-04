@@ -35,7 +35,7 @@ metadata {
 
     command "playDing"
     command "playMotion"
-    command "snooze", [[name: "Set Snooze Length (in hours)*", type: "NUMBER", range: "1..24", description: "Choose a value between 1 and 24"]]
+    command "snooze", [[name: "Set Snooze Length (in minutes)*", type: "NUMBER", range: "1..1440", description: "Choose a value between 1 and 1440 (24 hours)"]]
     command "cancelSnooze"
   }
 
@@ -92,10 +92,10 @@ void playDing() {
 }
 
 void snooze(snoozetime) {
-    // Value must be in [1, 24]
-    snoozetime = Math.min(Math.max(snoozetime == null ? 1 : snoozetime.toInteger(), 1), 24)
+    // Value must be in [1, 1440]
+    snoozetime = Math.min(Math.max(snoozetime == null ? 1 : snoozetime.toInteger(), 1), 1440)
 
-    final Integer sentValue = snoozetime * 60
+    final Integer sentValue = snoozetime
     
     parent.apiRequestDeviceControl(device.deviceNetworkId, "chimes", "do_not_disturb", [time: sentValue])
 }
