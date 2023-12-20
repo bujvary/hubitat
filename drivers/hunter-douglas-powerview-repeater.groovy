@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    12/20/2023 v2.6.8 - Added checks for color array and blinkEnabled value in JSON from repeater before processing
  *    04/03/2023 v2.6.7 - Version number update only
  *    10/09/2022 v2.6.6 - Version number update only
  *    10/07/2022 v2.6.5 - Version number update only
@@ -78,16 +79,26 @@ def updated() {
 public handleEvent(repeaterJson) {
     if (logEnable) log.debug "handleEvent: repeaterJson = ${repeaterJson}"
 
-    def level = (repeaterJson.color.brightness != null) ? repeaterJson.color.brightness : 0
-    if (level != device.currentValue("level"))
-        sendEvent(name: "level", value: level)
+    if (repeaterJson?.color != null) {
+        def level = (repeaterJson.color.brightness != null) ? repeaterJson.color.brightness : 0
+        if (level != device.currentValue("level"))
+            sendEvent(name: "level", value: level)
     
-    def colorName = rgbToColorName(repeaterJson.color)
-    if (colorName != device.currentValue("colorName"))
-        sendEvent(name: "colorName", value: colorName)
+        def colorName = rgbToColorName(repeaterJson.color)
+        if (colorName != device.currentValue("colorName"))
+            sendEvent(name: "colorName", value: colorName)
+    }
+    else {
+        if (logEnable) log.debug "repeaterJson is missing color array"
+    }
     
-    if (blinkEnabled != repeaterJson.blinkEnabled)
-        device.updateSetting("blinkEnabled", [value: repeaterJson.blinkEnabled, type: "bool"])
+    if (repeaterJson?.blinkEnabled != null) {
+        if (repeaterJson.blinkEnabled != blinkEnabled)
+            device.updateSetting("blinkEnabled", [value: repeaterJson.blinkEnabled, type: "bool"])
+    }
+    else {
+        if (logEnable) log.debug "repeaterJson is missing blinkEnabled value"
+    }
 
     device.updateDataValue("firmwareVersion", "${repeaterJson.firmware.revision}.${repeaterJson.firmware.subRevision}.${repeaterJson.firmware.build}")
 }
