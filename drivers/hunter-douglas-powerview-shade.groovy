@@ -15,6 +15,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change Log:
+ *    12/20/2023 v2.6.8 - Version number update only
  *    04/03/2023 v2.6.7 - Added Open Position and Closed Position preferences
  *    10/09/2022 v2.6.6 - Fixed initialization of the shade capabilities state value
  *    10/07/2022 v2.6.5 - Added logic to convert shade type to an equivalent shade capabilities value
