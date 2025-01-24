@@ -14,6 +14,8 @@
  *  Ported to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    01/23/2025 v1.11 - Added support for Yoolax shade model TS0301
+ *                     - Fixed issue in setLevel() where lift_pct was not initialized
  *    07/08/2022 v1.10 - Changed logsOff to run in 15 minutes
  *                     - Reverted to setLevel() in open()/close()
  *                     - Modified setLevel() to set level attribute to user requested level then use that
@@ -58,6 +60,7 @@ metadata {
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0102", outClusters: "0019", manufacturer: "Yookee", model: "D10110", deviceJoinName: "Yookee Window Treatment"
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0102", outClusters: "0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0020,0102", outClusters: "0003,0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
+        fingerprint inClusters: "0000,0004,0001,0005,EF00,0003,0102", outClusters: "0019,000A", manufacturer: "_TZE200_jhhskent", model: "TS0301", deviceJoinName: "yooksmart Window Treatment"
 	}
 
 	preferences {
@@ -223,7 +226,10 @@ def on() {
 def setLevel(data, rate = null) {
 	if (debugOutput) log.info "setLevel() level: ${data}"
 	def cmd
+    
 	if (supportsLiftPercentage()) {
+		lift_pct = data
+        
 		if (shouldInvertLiftPercentage() || invertSetLevel) {
 			// some devices keeps % level of being closed (instead of % level of being opened)
 			// inverting that logic is needed here
@@ -231,7 +237,7 @@ def setLevel(data, rate = null) {
                 data = closedPosition
 
 			lift_pct = 100 - data
-		}
+        }
 		cmd = zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_GOTO_LIFT_PERCENTAGE, zigbee.convertToHexString(lift_pct.intValue(), 2))
 	} else {
 		cmd = zigbee.command(zigbee.LEVEL_CONTROL_CLUSTER, COMMAND_MOVE_LEVEL_ONOFF, zigbee.convertToHexString(Math.round(data * 255 / 100), 2))
@@ -371,7 +377,7 @@ def isIkeaFyrtur() {
 }
 
 def isYooksmartOrYookee() {
-	return device.getDataValue("model") == "D10110"
+	return device.getDataValue("model") == "D10110" || device.getDataValue("model") == "TS0301"
 }
 
 def updated() {
