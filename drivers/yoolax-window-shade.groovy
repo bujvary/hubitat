@@ -41,7 +41,7 @@ import groovy.json.JsonOutput
 import hubitat.zigbee.zcl.DataType
 
 metadata {
-	definition(name: "Yoolax Window Shade", namespace: "bujvary", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/refs/heads/master/drivers/yoolax-window-shade.groovy") {
+	definition(name: "Yoolax Window Shade", namespace: "bujvary", author: "Brian Ujvary", importUrl: "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/yoolax-window-shade.groovy") {
 		capability "Actuator"
 		capability "Battery"
 		capability "Configuration"
