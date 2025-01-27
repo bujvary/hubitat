@@ -58,11 +58,11 @@
       "description": "Remotely start your car with a relay"
     },
     {
-      "name": "ZigBee Window Shade with Battery",
+      "name": "Yoolax Window Shade",
       "category": "Control",
       "tags": [ "Control", "Window Coverings" ],
-      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/zigbee-window-shade-with-battery/packageManifest.json",
-      "description": "Control ZigBee Window Shade with Batteries from IKEA, Yookee and Yooksmart"
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/packages/yoolax-window-shade/packageManifest.json",
+      "description": "Control Yoolax Window Shades with batteries from IKEA, Yookee and Yooksmart"
     },
     {
       "name": "Zooz Garage Door Opener",
