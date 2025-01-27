@@ -1,0 +1,16 @@
+{
+  "packageName": "Yoolax Window Shade",
+  "author": "Brian Ujvary",
+  "version": "1.2.0",
+  "minimumHEVersion": "0.0",
+  "dateReleased": "2025-01-27",
+  "drivers": [
+    {
+      "id": "afe7098d-03cf-4205-bb6e-8795ab7b1e10",
+      "name": "Yoolax Window Shade",
+      "namespace": "bujvary",
+      "location": "https://raw.githubusercontent.com/bujvary/hubitat/master/drivers/yoolax-window-shade.groovy",
+      "required": true
+    }
+  ]
+}
