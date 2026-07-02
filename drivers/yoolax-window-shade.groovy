@@ -1,6 +1,6 @@
 /**
  *
- *	Copyright 2025 Brian Ujvary
+ *	Copyright 2026 Brian Ujvary
  *
  *	Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *	in compliance with the License. You may obtain a copy of the License at:
@@ -14,6 +14,7 @@
  *  Ported from SmartThings to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    07/02/2026 v1.3  - Added fingerprint for Yoolax _TZE210_lwc1bjri shade 
  *    01/27/2025 v1.2  - Renamed to "Yoolax Window Shades"
  *                     - Reworked Invert Level/Percentage logic
  *    01/23/2025 v1.11 - Added support for Yoolax shade model TS0301
@@ -65,6 +66,7 @@ metadata {
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0102", outClusters: "0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
 		fingerprint inClusters: "0000,0001,0003,0004,0005,0020,0102", outClusters: "0003,0019", manufacturer: "yooksmart", model: "D10110", deviceJoinName: "yooksmart Window Treatment"
         fingerprint inClusters: "0000,0004,0001,0005,EF00,0003,0102", outClusters: "0019,000A", manufacturer: "_TZE200_jhhskent", model: "TS0301", deviceJoinName: "Yoolax Window Treatment"
+        fingerprint inClusters: "0000,0001,0004,0005,0003,EF00,0102", outClusters: "000A,0019", manufacturer: "_TZE210_lwc1bjri", model: "TS0301", deviceJoinName: "Yoolax Window Treatment"        
 	}
 
 	preferences {
