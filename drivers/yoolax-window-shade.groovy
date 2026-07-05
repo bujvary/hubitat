@@ -14,6 +14,8 @@
  *  Ported from SmartThings to Hubitat by Brian Ujvary
  *
  *  Change Log:
+ *    07/05/2026 v1.4  - Modified levelEventHandler(), close() and open() to use closedPosition to
+ *                       determine travel direction
  *    07/02/2026 v1.3  - Added fingerprint for Yoolax _TZE210_lwc1bjri shade 
  *    01/27/2025 v1.2  - Renamed to "Yoolax Window Shades"
  *                     - Reworked Invert Level/Percentage logic
@@ -158,11 +160,19 @@ def levelEventHandler(currentLevel) {
         sendEvent(name: "level", value: currentLevel)
         sendEvent(name: "position", value: currentLevel)
 
-		if (lastLevel < currentLevel) {
-			sendEvent([name: "windowShade", value: "opening"])
-        } else if (lastLevel > currentLevel) {
-			sendEvent([name: "windowShade", value: "closing"])
-		}
+        if (closedPosition == 100) {
+			if (lastLevel > currentLevel) {
+				sendEvent([name: "windowShade", value: "opening"])
+        	} else if (lastLevel < currentLevel) {
+				sendEvent([name: "windowShade", value: "closing"])
+			}
+        } else {
+			if (lastLevel < currentLevel) {
+				sendEvent([name: "windowShade", value: "opening"])
+        	} else if (lastLevel > currentLevel) {
+				sendEvent([name: "windowShade", value: "closing"])
+			}            
+        }
 	}
     
     runIn(3, "updateFinalState", [overwrite:true])
@@ -202,14 +212,14 @@ def batteryPercentageEventHandler(batteryLevel) {
 def close() {
 	if (debugOutput) log.info "close()"
 	runIn(5, refresh)
-	setLevel(0)
+	setLevel(closedPosition)
 	//zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
 }
 
 def open() {
 	if (debugOutput) log.info "open()"
 	runIn(5, refresh)
-	setLevel(100)
+    setLevel(100 - closedPosition)
 	//zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
 }
 
