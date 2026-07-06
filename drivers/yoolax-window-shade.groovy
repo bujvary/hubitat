@@ -14,10 +14,17 @@
  *  Ported from SmartThings to Hubitat by Brian Ujvary
  *
  *  Change Log:
- *    07/05/2026 v1.4  - Modified levelEventHandler(), close() and open() to use closedPosition to
+ *    07/06/2026 v1.15 - Reverted changes in made in v1.14
+ *                     - Renamed Invert Level/Percentage to Invert Position and reworked logic
+ *                     - Added check for Yooksmart D10110 shade in setLevel to workaround firmware
+ *                       bug in shade motor
+ *                     - Removed closedPosition preference option
+ *                     - In close() and open() replaced setLevel calls with Zigbee OPEN/CLOSE commands
+ *                     - Fixed an issue with all scheduled jobs being inadvertently unscheduled
+ *    07/05/2026 v1.14 - Modified levelEventHandler(), close() and open() to use closedPosition to
  *                       determine travel direction
- *    07/02/2026 v1.3  - Added fingerprint for Yoolax _TZE210_lwc1bjri shade 
- *    01/27/2025 v1.2  - Renamed to "Yoolax Window Shades"
+ *    07/02/2026 v1.13 - Added fingerprint for Yoolax _TZE210_lwc1bjri shade 
+ *    01/27/2025 v1.12 - Renamed to "Yoolax Window Shades"
  *                     - Reworked Invert Level/Percentage logic
  *    01/23/2025 v1.11 - Added support for Yoolax shade model TS0301
  *                     - Fixed issue in setLevel() where lift_pct was not initialized
@@ -72,9 +79,8 @@ metadata {
 	}
 
 	preferences {
-		input "invertSetLevel", "bool", title: "Invert Level/Position Percentage?", description: '<div><i>Invert the SetLevel or SetPosition percentage</i></div><br>', defaultValue: false
+		input "invertPosition", "bool", title: "Invert position reporting", description: '<div><i>Some devices report the position 0..100 inverted</i></div><br>', defaultValue: false
 		input "preset", "number", title: "Preset position", description: "<div><i>Set the window shade preset position</i></div><br>", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
-		input "closedPosition", "number", title: " Closed position", description: "<div><i>Set the position for fully closed window shade</i></div><br>", defaultValue: 0, range: "0..100", required: false, displayDuringSetup: false
 		input "debugOutput", "bool", title: "Enable debug logging?", description: '<div><i>Automatically disables after 15 minutes.</i></div><br>', defaultValue: true
 	}
 }
@@ -133,6 +139,8 @@ def parse(String description) {
             
 			def liftmap = descMaps.find { it.attrInt == ATTRIBUTE_POSITION_LIFT }
 			if (liftmap && liftmap.value) {
+                value = zigbee.convertHexToInt(liftmap.value)
+                if (debugOutput) log.info "parse() value: ${value}"
                 levelEventHandler(zigbee.convertHexToInt(liftmap.value))
 			}
 		} else if (!supportsLiftPercentage() && descMap?.clusterInt == zigbee.LEVEL_CONTROL_CLUSTER && descMap.value) {
@@ -145,34 +153,28 @@ def parse(String description) {
 	}
 }
 
-def levelEventHandler(currentLevel) {
+def levelEventHandler(reportedLevel) {
 	def lastLevel = device.currentValue("deviceLevel")
-	if (debugOutput) log.debug "levelEventHandle() currentLevel: ${currentLevel}, lastLevel: ${lastLevel}"
+    def newLevel = shouldInvertPosition() ? 100 - reportedLevel : reportedLevel
     
-    unschedule();
+    if (debugOutput) log.debug "levelEventHandler() reportedLevel: ${reportedLevel}, newLevel: ${newLevel}, lastLevel: ${lastLevel}"
+    
+    unschedule("updateFinalState");
  
     if (lastLevel == "undefined") {
 	    if (debugOutput) log.debug "levelEventHandler() Ignore invalid level report"
-    } else if (currentLevel == lastLevel) {
-		if (debugOutput) log.debug "levelEventHandler() currentLevel = lastLevel"
+    } else if (newLevel == lastLevel) {
+		if (debugOutput) log.debug "levelEventHandler() newLevel = lastLevel"
 	} else {
-        sendEvent(name: "deviceLevel", value: currentLevel)
-        sendEvent(name: "level", value: currentLevel)
-        sendEvent(name: "position", value: currentLevel)
+        sendEvent(name: "deviceLevel", value: newLevel)
+        sendEvent(name: "level", value: newLevel)
+        sendEvent(name: "position", value: newLevel)
 
-        if (closedPosition == 100) {
-			if (lastLevel > currentLevel) {
-				sendEvent([name: "windowShade", value: "opening"])
-        	} else if (lastLevel < currentLevel) {
-				sendEvent([name: "windowShade", value: "closing"])
-			}
-        } else {
-			if (lastLevel < currentLevel) {
-				sendEvent([name: "windowShade", value: "opening"])
-        	} else if (lastLevel > currentLevel) {
-				sendEvent([name: "windowShade", value: "closing"])
-			}            
-        }
+		if (lastLevel < newLevel) {
+			sendEvent([name: "windowShade", value: "opening"])
+        } else if (lastLevel > newLevel) {
+			sendEvent([name: "windowShade", value: "closing"])
+		}
 	}
     
     runIn(3, "updateFinalState", [overwrite:true])
@@ -187,9 +189,8 @@ def updateFinalState() {
         sendEvent(name: "switch", value: "on")
     }
     else {
-        if (debugOutput) log.debug "updateFinalState() closedPosition: ${closedPosition}"
-        sendEvent(name: "windowShade", value: level == closedPosition ? "closed" : "open")
-        sendEvent(name: "switch", value: level == closedPosition ? "off" : "on")
+        sendEvent(name: "windowShade", value: level == 0 ? "closed" : "open")
+        sendEvent(name: "switch", value: level == 0 ? "off" : "on")
     }
 }
 
@@ -212,15 +213,15 @@ def batteryPercentageEventHandler(batteryLevel) {
 def close() {
 	if (debugOutput) log.info "close()"
 	runIn(5, refresh)
-	setLevel(closedPosition)
-	//zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
+    
+	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
 }
 
 def open() {
 	if (debugOutput) log.info "open()"
 	runIn(5, refresh)
-    setLevel(100 - closedPosition)
-	//zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
+    
+	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
 }
 
 def off() {
@@ -240,11 +241,20 @@ def setLevel(value, rate = null) {
 	if (supportsLiftPercentage()) {
 		lift_pct = value
         
-		if (shouldInvertLiftPercentage()) {
+        /*
+		   Added a check for Yooksmart D10110 shades because of an
+           issue with the firmware and inverted lift percentages
+         */
+		if (shouldInvertPosition() || isYooksmart()) {
+            if (debugOutput) log.info "setLevel() inverting level ${value}"
+            
 			// some devices keeps % level of being closed (instead of % level of being opened)
 			// inverting that logic is needed here
 			lift_pct = 100 - value
         }
+        
+        if (debugOutput) log.info "setLevel() lift_pct: ${lift_pct}"
+        
 		cmd = zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_GOTO_LIFT_PERCENTAGE, zigbee.convertToHexString(lift_pct.intValue(), 2))
 	} else {
 		cmd = zigbee.command(zigbee.LEVEL_CONTROL_CLUSTER, COMMAND_MOVE_LEVEL_ONOFF, zigbee.convertToHexString(Math.round(value * 255 / 100), 2))
@@ -365,8 +375,8 @@ def supportsLiftPercentage() {
 	return isIkeaKadrilj() || isIkeaFyrtur() || isYooksmartOrYookee()
 }
 
-def shouldInvertLiftPercentage() {
-	return isIkeaKadrilj() || isIkeaFyrtur() || invertSetLevel
+def shouldInvertPosition() {
+	return isIkeaKadrilj() || isIkeaFyrtur() || invertPosition
 }
 
 def reportsBatteryPercentage() {
@@ -379,6 +389,10 @@ def isIkeaKadrilj() {
 
 def isIkeaFyrtur() {
 	return device.getDataValue("model") == "FYRTUR block-out roller blind"
+}
+
+def isYooksmart() {
+	return device.getDataValue("model") == "D10110"
 }
 
 def isYooksmartOrYookee() {
