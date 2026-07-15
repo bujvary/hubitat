@@ -4,7 +4,7 @@
  *  Design Usage:
  *  This driver is used to get BLE beacon broadcast data from a BLE Wifi Gateway that posts data to a MQTT broker.
  *
- *  Copyright 2022 Brian Ujvary
+ *  Copyright 2026 Brian Ujvary
  *
  *  Based on work by Aaron Ward, Kirk Rader
  *  
@@ -24,6 +24,7 @@
  *
  *
  *  Changes:
+ *  1.3.6 - Modified debug and info message logging
  *  1.3.5 - Added delay in processHealthCheck() to turn OverrideSwitch off to prevent accidental opening of garage door
  *  1.3.4 - Fixed logic in healthCheck() to send health check message every time called
  *  1.3.3 - Refactored health check logic once again to handle vehicle presence state switch properly
@@ -85,12 +86,12 @@ metadata {
         input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
         input name: "healthCheckInterval", type: "enum", title: "Health Check Interval", description: "<div><i>Number of seconds between health check messages sent to gateway</i></div>", options: ["10", "20", "30", "60"], required: true, defaultValue: "10", displayDuringSetup: true
         input name: "disableLastUpdated", type: "bool", title: "Disable LastUpdated Event", required: false, defaultValue: true, displayDuringSetup: true
-        input name: "logEnable", type: "bool", title: "Enable logging", description: "<div><i>Automatically disables after 15 minutes</i></div>", required: true, defaultValue: true
+        input name: "logDebugEnable", type: "bool", title: "Enable debug logging?", description: "<div><i>Automatically disables after 15 minutes</i></div>", required: true, defaultValue: true
     }
 }
 
 def installed() {
-    if (logEnable) log.debug "installed()..."
+    if (logDebugEnable) log.debug "installed()..."
 
     if (!getChildDevice("${device.deviceNetworkId}-switch")) {
         addChildDevice("hubitat", "Generic Component Switch", "${device.deviceNetworkId}-switch", [completedSetup: true, label: "Vehicle Presence Override", isComponent: true])
@@ -101,9 +102,9 @@ def installed() {
 }
 
 def updated() {
-    if (logEnable) log.info "updated()..."
+    if (logDebugEnable) log.debug "updated()..."
     
-    if (logEnable) runIn(900,logsOff)
+    if (logDebugEnable) runIn(900,logsOff)
     
     unschedule()
     disconnect()
@@ -113,18 +114,20 @@ def updated() {
 }
 
 def uninstalled() {
-    if (logEnable) log.debug "uninstalled()..."
+    if (logDebugEnable) log.debug "uninstalled()..."
     
-    if (logEnable) log.info "Disconnecting from mqtt"
+    log.info "Disconnecting from mqtt"
     interfaces.mqtt.disconnect()
     removeChildDevices()
 }
 
 def initialize() {
-    if (logEnable) log.debug "initialize()..."
+    if (logDebugEnable) log.debug "initialize()..."
     
-    if (logEnable) runIn(900,logsOff) 
-    unschedule()    
+    unschedule()
+    
+    if (logDebugEnable) runIn(900,logsOff)
+    
     updateOverrideSwitch("on")
     state.gatewayIsAlive = false
     
@@ -135,7 +138,7 @@ def initialize() {
 }
 
 def parse(String description) {
-    if (logEnable) log.debug "parse()..."
+    if (logDebugEnable) log.debug "parse()..."
     
     Date date = new Date();
     
@@ -145,27 +148,27 @@ def parse(String description) {
     payload = interfaces.mqtt.parseMessage(description).payload
     payloadJson = parseJson(payload)
     
-    if (logEnable) log.debug "Topic: ${topic}"
-    if (logEnable) log.debug "Payload: ${payload}"
-    if (logEnable) log.debug "payloadJson: ${payloadJson}"
+    if (logDebugEnable) log.debug "Topic: ${topic}"
+    if (logDebugEnable) log.debug "Payload: ${payload}"
+    if (logDebugEnable) log.debug "payloadJson: ${payloadJson}"
     
     if (topic == "status") {
         payloadJson.each { beacon ->
-            if (logEnable) log.debug "mac: ${beacon.mac}"
+            if (logDebugEnable) log.debug "mac: ${beacon.mac}"
 
             def macDNI = "ble:" + beacon.mac
             def macChild = getChildDevice(macDNI)
             if (macChild == null) {
-                if (logEnable) log.warn "parse: child presence sensor does not exist for ${macDNI}"
+                log.warn "parse: child presence sensor does not exist for ${macDNI}, creating a new child device for it"
                 macChild = addChildDevice("bujvary", "Virtual Presence with Timeout", macDNI, [label: "Vehicle Presence Sensor", isComponent: true])
             }
         
-            if (logEnable) log.debug "parse: updating presence sensor data for " + macDNI
+            if (logDebugEnable) log.debug "parse: updating presence sensor data for " + macDNI
             macChild.parse(beacon.rssi)
         }
     
         if (!disableLastUpdated) {
-            if (logEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
+            if (logDebugEnable) log.debug "Sending event: name -> lastUpdated, value -> ${date.toString()}"
             sendEvent(name: "lastUpdated", value: "${date.toString()}", displayed: true)
         }
     }
@@ -178,17 +181,17 @@ def parse(String description) {
 }
 
 def publishMsg(String s) {
-    if (logEnable) log.debug "publishMsg()..."
+    if (logDebugEnable) log.debug "publishMsg()..."
     
     if (settings?.retained==null) settings?.retained=false
     if (settings?.QOS==null) settings?.QOS="1"
     
-    if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicActionPublish} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
+    if (logDebugEnable) log.debug "Sent this: ${s} to ${settings?.topicActionPublish} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
     interfaces.mqtt.publish(settings?.topicActionPublish, s, settings?.QOS.toInteger(), settings?.retained)
 }
 
 def connect() {
-    if (logEnable) log.debug "connect()..."
+    if (logDebugEnable) log.debug "connect()..."
     
     try {
         mqttbroker = "tcp://" + settings?.MQTTBroker + ":1883"
@@ -208,11 +211,11 @@ def connect() {
 }
 
 def disconnect() {
-    if (logEnable) log.debug "disconnect()..."
+    if (logDebugEnable) log.debug "disconnect()..."
     
     if (interfaces.mqtt.isConnected()) {
         try {
-            if (logEnable) log.debug "Attempting to disconnect from MQTT broker"
+            if (logDebugEnable) log.debug "Attempting to disconnect from MQTT broker"
             interfaces.mqtt.disconnect()
         } catch (e) {
             log.error "Error disconnecting: ${e.message}"
@@ -227,7 +230,7 @@ def disconnect() {
 }
 
 void mqttClientStatus(String message) {
-    if (logEnable) log.debug "mqttClientStatus()..."
+    if (logDebugEnable) log.debug "mqttClientStatus()..."
     
     if (message.startsWith("Error:")) {
         log.error "MQTT client message - ${message}"
@@ -242,7 +245,7 @@ void mqttClientStatus(String message) {
 }
 
 void connectionEstablished() {
-    if (logEnable) log.debug "connectionEstablished()..."
+    if (logDebugEnable) log.debug "connectionEstablished()..."
     
     interfaces.mqtt.subscribe(settings?.topicStatusSub)
     interfaces.mqtt.subscribe(settings?.topicActionResponseSub)
@@ -251,7 +254,7 @@ void connectionEstablished() {
 }
 
 void connectionLost() {
-    if (logEnable) log.debug "connectionLost()..."
+    if (logDebugEnable) log.debug "connectionLost()..."
     
     disconnect()
     
@@ -278,7 +281,7 @@ def removeChildDevices() {
 }
 
 def healthCheck() {
-    if (logEnable) log.debug "healthCheck()..."
+    if (logDebugEnable) log.debug "healthCheck()..."
 
     if (state.gatewayIsAlive == false) {
         def timeDiff = (now() - state.lastHealthCheck ?: 0) / 1000
@@ -295,7 +298,7 @@ def healthCheck() {
 }
 
 def processHealthCheck() {
-    if (logEnable) log.debug "processHealthCheck()..."
+    if (logDebugEnable) log.debug "processHealthCheck()..."
 
     state.gatewayIsAlive = true
 
@@ -303,7 +306,7 @@ def processHealthCheck() {
 }
 
 def updateOverrideSwitch(value) {
-    if (logEnable) log.debug "updateOverrideSwitch(${value})..."
+    if (logDebugEnable) log.debug "updateOverrideSwitch(${value})..."
 
     com.hubitat.app.DeviceWrapper cd = getChildDevice("${device.deviceNetworkId}-switch")
     switchValue = cd?.currentValue("switch")
@@ -320,16 +323,16 @@ void componentRefresh(cd) {
 }
 
 void componentOn(cd){
-    if (logEnable) log.debug "componentOn(${cd.displayName})"
+    if (logDebugEnable) log.debug "componentOn(${cd.displayName})"
     getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"on", descriptionText:"${cd.displayName} was turned on"]])
 }
 
 void componentOff(cd){
-    if (logEnable) log.debug "componentOn(${cd.displayName})"
+    if (logDebugEnable) log.debug "componentOn(${cd.displayName})"
     getChildDevice(cd.deviceNetworkId).parse([[name:"switch", value:"off", descriptionText:"${cd.displayName} was turned off"]])
 }
 
 def logsOff(){
     log.warn "Debug logging disabled."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
+    device.updateSetting("logDebugEnable",[value:"false",type:"bool"])
 }
